@@ -75,11 +75,14 @@ Python's Pillow.
 - **The characters, creatures and names are Mojang's all the same.** The
   creeper, the enderman, the Nether, the End and the rest belong to Mojang
   Studios and Microsoft, and what is drawn here imitates them on purpose. That
-  makes this a fan work: to play and to share for free, **not to sell**, and
-  not something this repository can give anyone a licence over.
+  makes this a fan work: to play and to share for free, **not to sell**. No
+  licence in this repository gives anyone a right over them.
 - "Minecraft" is a trademark of Mojang Synergies AB. This project is not
   theirs, is not endorsed by them, and does not use their name as its own.
 - **The font** is [Monocraft](https://github.com/IdreesInc/Monocraft) by Idrees
   Hassan, under the SIL Open Font License 1.1 (`fonts/OFL.txt`).
-- **The code** (`guard.plm`, `guard.luau`, `art/`, `play.sh`) is Abel's. No
-  licence has been chosen for it yet: ask before reusing it.
+- **The code** (`guard.plm`, `guard.luau`, `art/`, `play.sh`) is under the MIT
+  licence ([LICENSE](LICENSE)): take it, change it, build your own game on it.
+  That licence covers what was written here, the code and the drawing scripts.
+  It does not, and cannot, cover Mojang's characters and names: a game made
+  from this one with them in it is a fan work as this one is.
