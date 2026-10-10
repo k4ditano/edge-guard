@@ -1,12 +1,13 @@
 # Edge guard
 
 A small idle battle that lives along the bottom edge of your monitor, over
-whatever you have open. Three heroes hold a camp on the left; waves come from
-the right. Clicks go through to your windows everywhere except on the game's
-own pieces.
+whatever you have open. A party holds a camp on the left; waves come from the
+right, through six lands, each with a lord at the end of it. The camp mines,
+smelts and grows wheat by itself, also while the game is put away or closed.
+Clicks go through to your windows everywhere except on the game's own pieces.
 
 It is written in [pleamar](https://github.com/k4ditano/pleamar): one scene
-(`guard.plm`) and its logic (`guard.luau`).
+(`guard.plm`) and its logic (`guard.luau` and the four parts in `logic/`).
 
 > **A fan work inspired by Minecraft.**
 > NOT AN OFFICIAL MINECRAFT PRODUCT. NOT APPROVED BY OR ASSOCIATED WITH MOJANG
@@ -39,32 +40,73 @@ monitor). Anywhere else it is untried.
 The first time, `play.sh` copies the game's font (Monocraft) into
 `~/.local/share/fonts`.
 
-- **Heroes:** drag one to where it should stand.
-- **The camp's chest or table:** opens the crafting table. Things are carried
-  with the mouse; the right button takes half of a pile, or puts down one. Lay
-  them on the grid as the recipe says and take what they make from the slot at
-  its right.
-- **The book** at the table's left knows every recipe whose ingredients you
-  have found, and lays one out when pressed.
-- **The panel** at its right is what each hero carries.
-- **The bar of nine:** press a thing to use it (TNT, a potion, a web), then
-  press where it should go.
-- **Chests** left on the field after a wave wait until you press them.
-- **Every five waves** the land changes, and reaching one is where you come
-  back to when the camp falls. A hero that falls stays down until the wave is
-  won or lost.
-- **Two small buttons** stop it where it is, or put it away into a corner.
-- **A game controller:** the left stick moves the knight, A calls a lightning,
-  Y silences it.
+**The field**
 
-Your game is kept in `~/.local/share/pleamar/guard/guard4.json`.
+- **Heroes:** drag one to where it should stand.
+- **Chests** left on the field after a wave wait until you press them.
+- **The bar of nine:** press a thing to use it. TNT, a potion or a web then
+  want a press where they should go; bread, a collar, a pickaxe, a heart of
+  iron or a bell are used at once.
+- **The lightning** is the small button with a bolt: it strikes whoever is
+  nearest the camp, and is ready again in twenty seconds.
+- **Two more small buttons** stop the game where it is, or put it away into a
+  corner.
+- **A game controller:** the left stick moves the knight, A calls the
+  lightning, Y silences it.
+
+**The lands and their lords**
+
+- There are six lands of five waves. Each has its own creatures, and things
+  that are found there more than anywhere else. When the camp falls, the party
+  goes back to the first wave of the land it is in; a hero that falls stays
+  down until the wave is won or lost.
+- The fifth wave brings the land's **lord**. A lord announces what it is about
+  to do: a mark on the ground and a bar that fills under its name. TNT or the
+  lightning stop it and leave it dazed; a cobweb thrown on the mark catches
+  the ones that leap or step behind the party; the fire of the Nether's is
+  dodged by dragging the heroes off the marks. With half of it gone, it calls
+  its own.
+- A lord leaves a **trophy**. The best things are made with them: a golem and
+  a cleric to join the party, a totem, the last bow and the last two staffs.
+- When a lord falls the way to the next land opens. **The map** (a page of the
+  table) takes the party to any land whose way is open, and can tell it to
+  stay in one, to gather what that land gives.
+- The lord of the End leaves an Eye. With it, the map opens **a new world**:
+  the lands and the party's levels start over, everything is stronger, and the
+  party keeps what it carries and is a star stronger for good.
+
+**The camp**
+
+- **The chest or the crafting table** open the table. Things are carried with
+  the mouse; the right button takes half of a pile, or puts down one. Lay them
+  on the grid as the recipe says and take what they make from the slot at its
+  right. **The book** at its left knows every recipe whose ingredients you
+  have found, and lays one out when pressed.
+- **The panel** at its right is the party: a weapon, a helmet, a chestplate,
+  boots and a charm each. Experience fills levels, shown in green; the `+` on
+  a hero spends them on that hero.
+- **The enchanting table** spends them on what the heroes carry instead: put a
+  weapon or a piece of armour on it, lapis beside it, and choose one of what
+  it offers.
+- **The mine** digs by itself: press it to fetch what it has. A better pickaxe
+  finds more. **The furnace** turns raw iron and raw gold into ingots, with
+  coal or sticks. **The wheat** grows by itself: press it when it is golden.
+- All three go on while the game is put away or closed (up to eight hours),
+  and the party holds its land meanwhile; what they did is told when you come
+  back.
+- `auto`, on the table, lets the camp do all of that by itself: craft, hand
+  things over, spend its levels on the heroes, feed the furnace, fetch and reap.
+- The other pages of the table are the **bestiary** (everything you have met,
+  how many have fallen and what they left) and the **feats**.
+
+Your game is kept in `~/.local/share/pleamar/guard/guard5.json`.
 
 ## The pictures
 
 Every picture in `pieces/` is made by the scripts in `art/`: the characters and
 blocks are built box by box and rendered with Blender (`make.py`), packed into
-sheets (`pack.py`), and the things are written out pixel by pixel
-(`items.py`). `art/build.sh` makes them all again; it needs Blender and
+sheets that share pleamar's one square of pictures (`pack.py`), and the things
+are written out pixel by pixel (`items.py`). `art/build.sh` makes them all again; it needs Blender and
 Python's Pillow.
 
 ## Rights
@@ -81,7 +123,7 @@ Python's Pillow.
   theirs, is not endorsed by them, and does not use their name as its own.
 - **The font** is [Monocraft](https://github.com/IdreesInc/Monocraft) by Idrees
   Hassan, under the SIL Open Font License 1.1 (`fonts/OFL.txt`).
-- **The code** (`guard.plm`, `guard.luau`, `art/`, `play.sh`) is under the MIT
+- **The code** (`guard.plm`, `guard.luau`, `logic/`, `art/`, `play.sh`) is under the MIT
   licence ([LICENSE](LICENSE)): take it, change it, build your own game on it.
   That licence covers what was written here, the code and the drawing scripts.
   It does not, and cannot, cover Mojang's characters and names: a game made

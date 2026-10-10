@@ -1,6 +1,7 @@
 """The things that are picked up, made, worn and thrown, as pixel art of
-16 × 16: each one written out pixel by pixel, eight to a row of the sheet.
-A letter is a colour of that thing's own palette; a dot is nothing."""
+16 × 16: each one written out pixel by pixel, eight to a row of the sheet,
+which always has ten rows. A letter is a colour of that thing's own palette;
+a dot is nothing. The order is the game's: a new thing goes at the end."""
 import os
 from PIL import Image
 OUT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "pieces", "items.png")
@@ -11,6 +12,9 @@ def metal(o, d, m, l, w):
 IRON = metal("#2f3338", "#6f777e", "#a9b1b8", "#d6dce1", "#ffffff")
 DIAMOND = metal("#0d3b38", "#1f9f95", "#4ee6d6", "#a8fff2", "#ffffff")
 TIMBER = metal("#2a1c0c", "#5a3d1e", "#8a6233", "#b8945f", "#d9b888")
+GOLD = metal("#5a3a08", "#c28a12", "#f2c832", "#ffe97a", "#ffffff")
+NETHERITE = metal("#141016", "#2e2832", "#4a4350", "#6e6676", "#9a90a4")
+FROST = metal("#1a3a5a", "#4a8ac0", "#8ac4ee", "#c4e6ff", "#ffffff")
 
 def sword(blade):
     pal = dict(blade, h="#5a3d1e", g="#3a2a14", k="#8a6a2a", K="#c9a24a")
@@ -49,8 +53,10 @@ def chestplate(m):
             "................",
             "................"], m
 
-def bow(glint):
+def bow(glint, wood=None):
     pal = dict(o="#2a1c0c", d="#5a3d1e", m="#8a5a2b", l="#b98548", s="#e8e2d0", S="#b8b2a2", g=glint or "#8a5a2b", G=glint and "#f2c9ff" or "#b98548")
+    if wood:
+        pal.update(o=wood["o"], d=wood["d"], m=wood["m"], l=wood["l"], G=wood["w"])
     return ["................",
             "......oooo......",
             "....oolmmdoS....",
@@ -106,6 +112,104 @@ def heart(a, b, shine):
             "................",
             "................"], pal
 
+def ingot(m):
+    return ["................", "................", "................", "....ooooooooo...", "...olwlllllldo..", "..olwllllllmdo..", ".olmmmmmmmmddo..", "olmmmmmmmmmdoo..",
+            "ommmmmmmmmddo...", "oddddddddddo....", ".oooooooooo.....", "................", "................", "................", "................", "................"], m
+
+def lump(m):
+    """Something raw, as it comes out of the rock."""
+    return ["................",
+            "................",
+            ".....oooo.......",
+            "....olllmoo.....",
+            "...olwlmmmdo....",
+            "..olllmmmmddo...",
+            "..olmmmmlmmdo...",
+            ".olmmmdmmmmmdo..",
+            ".ommmmmmmmdmdo..",
+            ".omdmmmlmmmddo..",
+            ".oddmmmmmmddo...",
+            "..oddmmdmddo....",
+            "...oodddddo.....",
+            ".....ooooo......",
+            "................",
+            "................"], m
+
+def helmet(m):
+    return ["................",
+            "................",
+            "....oooooooo....",
+            "...ollllllmmo...",
+            "..olwllmmmmmdo..",
+            "..olllmmmmmmdo..",
+            ".ollmmmmmmmmmdo.",
+            ".olmmmmmmmmmmdo.",
+            ".olmmmoooommmdo.",
+            ".olmmo....ommdo.",
+            ".olmdo....omddo.",
+            ".oddo......oddo.",
+            "..oo........oo..",
+            "................",
+            "................",
+            "................"], m
+
+def boots(m):
+    return ["................",
+            "................",
+            "................",
+            "..ooooo..ooooo..",
+            "..ollmo..ollmo..",
+            "..olmmo..olmmo..",
+            "..olmmo..olmmo..",
+            "..olmdo..olmdo..",
+            "..olmmoo.olmmoo.",
+            ".oolmmmdoolmmmdo",
+            ".olmmmmdolmmmmdo",
+            ".oddddddoddddddo",
+            ".ooooooooooooooo",
+            "................",
+            "................",
+            "................"], m
+
+def pick(head):
+    pal = dict(head, h="#8a6233", H="#5a3d1e", k="#2a1c0c")
+    return ["................",
+            "...ooooooo......",
+            "..olllmmmmoo....",
+            "...ooooomlmdo...",
+            "........khmmdo..",
+            ".......khHomdo..",
+            "......khHk.omdo.",
+            ".....khHk..omdo.",
+            "....khHk...omdo.",
+            "...khHk....omdo.",
+            "..khHk......odo.",
+            ".khHk........o..",
+            ".kHk............",
+            "..k.............",
+            "................",
+            "................"], pal
+
+def staff(shaft, head):
+    """A long stick with something on its end: `head` gives h, H and w."""
+    pal = dict(o="#1a1210", K="#ffe27a", k="#c9a24a", l=shaft[0], m=shaft[1], d=shaft[2], **head)
+    return ["................",
+            "..........oooo..",
+            ".........ohhhho.",
+            "........ohhwwhho",
+            "........ohwwhhHo",
+            "........ohhhhHHo",
+            ".........ohHHHo.",
+            "........oKkooo..",
+            ".......oKko.....",
+            "......olmo......",
+            ".....olmdo......",
+            "....olmdo.......",
+            "...olmdo........",
+            "..olmdo.........",
+            ".omdo...........",
+            "..oo............"], pal
+
 ICONS = [
     ("stick", ["................", "............oo..", "...........olmo.", "..........olmdo.", ".........olmdo..", "........olmdo...", ".......olmdo....", "......olmdo.....",
                ".....olmdo......", "....olmdo.......", "...olmdo........", "..olmdo.........", ".olmdo..........", ".omdo...........", "..oo............", "................"], WOOD),
@@ -155,6 +259,82 @@ ICONS = [
     ("heart_empty",) + heart("#3a1512", "#3a1512", "#3a1512"),
     ("book", ["................", "..oooooooooooo..", ".ogGGGGGGGGGGgo.", ".ogGllllllllGgo.", ".ogGlwwwwwwlGgo.", ".ogGllllllllGgo.", ".ogGGGGGGGGGGgo.", ".ogGGGGkkGGGGgo.",
               ".ogGGGkKKkGGGgo.", ".ogGGGGkkGGGGgo.", ".ogGGGGGGGGGGgo.", ".ogggggggggggpo.", ".oPPPPPPPPPPPpo.", ".oooooooooooooo.", "................", "................"], dict(o="#10300c", g="#2f7d1f", G="#4aa838", l="#8fd67a", w="#e4ffd6", k="#c9a24a", K="#ffe27a", p="#c9c5b5", P="#f6f3ea")),
+
+    # ── what the mine, the lands and their lords give, and what is made of it ──
+    ("raw_iron",) + lump(dict(o="#3a2a20", d="#8a6a55", m="#c9a58a", l="#e8cdb8", w="#fff2e6")),
+    ("raw_gold",) + lump(dict(o="#5a3a08", d="#b07a10", m="#e8b830", l="#ffe27a", w="#fff7c9")),
+    ("gold",) + ingot(GOLD),
+    ("coal", ["................", "................", "......ooooo.....", "....ooddmmdo....", "...odmmlwmmdo...", "..odmmllmmmdo...", "..ommmmmmmdddo..", ".odmmmmmmlmddo..",
+              ".ommdmmmmmmmdo..", ".odmmmmdmmmddo..", "..oddmmmmmddo...", "..oodddmdddo....", "....oodddoo.....", "......ooo.......", "................", "................"], dict(o="#050505", d="#1a1a1a", m="#303030", l="#555555", w="#8a8a8a")),
+    ("lapis", ["................", "................", ".......oooo.....", ".....oollmdo....", "....olwlmmmdo...", "...olwlmmmmdo...", "...ollmmmdmmdo..", "..olmmmmmmmmdo..",
+               "..ommmdmmmmddo..", "..odmmmmmlmddo..", "...odmmmmmddo...", "...oddmmdddo....", "....ooddddo.....", "......oooo......", "................", "................"], dict(o="#0a1a4a", d="#1a3a9a", m="#2f5fd0", l="#6a94f0", w="#c4d6ff")),
+    ("redstone", ["................", "................", "................", "................", ".......oo.......", "......orRo..oo..", "..oo.orRrro.oro.", ".orrooRrRRroo...",
+                  ".oRo.orRrRRro...", "..o.orRrwRrRro..", "...orRrRRrRrRo..", "..orRRrRrRRrRro.", ".orrRrRRrRrRRro.", ".oooooooooooooo.", "................", "................"], dict(o="#3a0606", r="#c41a1a", R="#ff3a2a", w="#ff9a8a")),
+    ("ice", ["................", "...........oo...", "..........olwo..", ".........olwlo..", "........olwllo..", ".......olwlmdo..", "......olwlmmdo..", ".....olwlmmdo...",
+             "....olwlmmdo....", "...ollmmmdo.....", "..olmmmmdo......", "..ommmddo.......", "..oddddo........", "...oooo.........", "................", "................"], FROST),
+    ("blaze_rod", ["................", "............oo..", "...........olwo.", "..........olmdo.", ".........olmdo..", "........olwdo...", ".......olmdo....", "......olmdo.....",
+                   ".....olwdo......", "....olmdo.......", "...olmdo........", "..olwdo.........", ".olmdo..........", ".omdo...........", "..oo............", "................"], dict(o="#5a2a00", d="#c46a00", m="#f2a81e", l="#ffd23a", w="#fff7c9")),
+    ("scrap", ["................", "................", "....oo..........", "...olmo..ooo....", "...ommdoolmdo...", "..olmmmmmmmdo...", "..ommdmmmlmmdo..", ".olmmmmmmmmddo..",
+               ".ommmlmmdmmdo...", ".oddmmmmmmmdo...", "..oodmmdmmddo...", "....odmmmddo....", "....oodddoo.....", "......ooo.......", "................", "................"], dict(o="#1a100e", d="#3a2622", m="#5a3d36", l="#8a6a5e")),
+    ("wheat", ["................", "..oo....oo...oo.", ".oYYo..oYYo.oYYo", ".oyYo..oyYo.oYyo", ".oYyo..oYyo.oyYo", "..oYyo.oyYooYyo.", "..oyYo.oYyooyo..", "...oyYooyooyo...", "....oyYoyoyo....", ".....oyyyyo.....", ".....ogggo......", ".....oyyyo......", "....oyoyoyo.....", "...oyo.o.oyo....", "...oo.....oo....", "................"], dict(o="#4a3a08", y="#d9b03a", Y="#f7e08a", g="#7a9a2a")),
+    ("bread", ["................", "................", "................", "................", "....oooooooo....", "..oollllllllmo..", ".ollwllwllwlmmo.", ".olmlmmlmmlmmdo.",
+               ".ommmmmmmmmmmdo.", ".ommmmmmmmmmddo.", ".oddmmmmmmmdddo.", "..oodddddddddo..", "....ooooooooo...", "................", "................", "................"], dict(o="#3a2208", d="#8a5a1e", m="#c48a3a", l="#e0b060", w="#f7dfa0")),
+    ("iron_block", ["................", ".oooooooooooooo.", ".olllllllllllmo.", ".olwwlllllllmdo.", ".olwmmmmmmmmmdo.", ".ollmmmmmmmmmdo.", ".ollmmmmdmmmmdo.", ".ollmmmmmmmmmdo.",
+                    ".ollmmdmmmmmmdo.", ".ollmmmmmmmdmdo.", ".ollmmmmmmmmmdo.", ".olmmmmmmmmmddo.", ".omdddddddddddo.", ".oooooooooooooo.", "................", "................"], IRON),
+    ("netherite_sword",) + sword(NETHERITE),
+    ("crossbow", ["................", "................", "...oooooooooo...", ".oolmmmkkmmmloo.", "olmdoookKooodmlo", "omdo.s.kK.s.odmo", "omo...sohs...omo", "oo.....oho....oo", ".......oho......", ".......oho......", ".......ohko.....", ".......ohKo.....", ".......oho......", ".......oho......", "........o.......", "................"], dict(o="#2a1c0c", d="#5a3d1e", m="#8a5a2b", l="#b98548", s="#e8e2d0", h="#7a552a", k="#6f777e", K="#d6dce1")),
+    ("frost_bow",) + bow("#ffffff", FROST),
+    ("blaze_staff",) + staff(("#ffd23a", "#f2a81e", "#c46a00"), dict(h="#ff9a1e", H="#e0501a", w="#fff2a0")),
+    ("ender_staff",) + staff(("#6a4a8a", "#3f2a5a", "#241636"), dict(h="#b84ff0", H="#6a1f9a", w="#a8fff2")),
+    ("iron_helmet",) + helmet(IRON),
+    ("diamond_helmet",) + helmet(DIAMOND),
+    ("netherite_helmet",) + helmet(NETHERITE),
+    ("iron_boots",) + boots(IRON),
+    ("diamond_boots",) + boots(DIAMOND),
+    ("netherite_boots",) + boots(NETHERITE),
+    ("netherite_chest",) + chestplate(NETHERITE),
+    ("wood_pick",) + pick(TIMBER),
+    ("iron_pick",) + pick(IRON),
+    ("diamond_pick",) + pick(DIAMOND),
+    # ── what each lord leaves ──
+    ("crown", ["................", "................", "................", ".oo...oo...oo...", "oyYo.oyYo.oyYo..", "oyYooyYYyooYyo..", "oyYYyYrrYyYYyo..", "oyrYYYrrYYYryo..",
+               "oyYYYYYYYYYYyo..", "oydyyyyyyyyydo..", "oddddddddddddo..", ".oooooooooooo...", "................", "................", "................", "................"], dict(o="#5a3a08", y="#f2c832", Y="#ffe97a", d="#c28a12", r="#d8352a")),
+    ("scarab", ["................", "......o..o......", ".....oo..oo.....", "....ooyyyyoo....", "...oyyYYYYyyo...", "..o.oyYbbYyo.o..", ".oo.oyyyyyyo.oo.", "..ooyYYooYYyoo..",
+                "...oyYyooyYyo...", ".oooyYyooyYyooo.", ".o..oyYooYyo..o.", "....oyYooYyo....", "...oooyyyyooo...", "...o..oooo..o...", "................", "................"], dict(o="#3a2a08", y="#c9a24a", Y="#f2d98a", b="#1fd0c0")),
+    ("slime_core", ["................", "................", ".....oooooo.....", "...oolllmmdoo...", "..olwwllmmmmdo..", ".olwlhhmmhhmmdo.", ".ollhHHhhHHhmdo.", "olmmhHWHHHHhmddo",
+                    "olmmhHHHHHHhmddo", "ommmmhHHHHhmdddo", "ommmmmhHHhmmdddo", ".ommmmmhhmmdddo.", ".odmmmmmmddddo..", "..ooddddddddo...", "....oooooooo....", "................"], dict(o="#17320f", d="#3f8a2f", m="#6fbf5a", l="#a6e88e", w="#e4ffd6", h="#0d4a2a", H="#1fd06a", W="#b8ffd6")),
+    ("frost_string", ["................", "..oo.......oo...", ".owwo.....owso..", ".owsooooooowso..", "..owwwwwwwwso...", "...oooosooooo...", "......owso......", ".....owso.......",
+                      "....owsooooo....", "...owwwwwwwso...", "...owsoooowso...", "...owso..owso...", "....oo...owso...", ".........owso...", "..........oo....", "................"], dict(o="#1a3a5a", w="#e4f4ff", s="#8ac4ee")),
+    ("magma_heart", ["................", "................", "..ooo....ooo....", ".odddoo.odddo...", "odmymdoodmmmdo..", "odmmymmmmymmdo..", "odmmmymmymmmdo..", "oDmmyYyyYmmmDo..",
+                     ".oDmmmyYmmmDo...", "..oDmmmymmDo....", "...oDmmymDo.....", "....oDmmDo......", ".....oDDo.......", "......oo........", "................", "................"], dict(o="#1a0505", d="#6a1a12", D="#3a0a08", m="#9a2a1c", y="#ff9a1e", Y="#ffe27a")),
+    ("giant_eye", ["................", "................", ".....oooooo.....", "...oogmmmmgoo...", "..ogmmlllmmmgo..", ".ogmllkkkllmmgo.", ".omllkkpkkllmmo.", "ogmlkkpPpkklmmgo",
+                   "ogmlkkpppkklmmgo", ".omllkkkkkllmmo.", ".ogmllkkkllmmgo.", "..ogmmlllmmmgo..", "...oogmmmmgoo...", ".....oooooo.....", "................", "................"], dict(o="#1a0626", g="#4a1a6a", m="#7a2fb0", l="#d49af7", k="#12061a", p="#e079fa", P="#ffffff")),
+    # ── what brings someone to the camp, and what keeps one standing ──
+    ("totem", ["................", ".....oooooo.....", "....oyYYYYyo....", "....oYgYYgYo....", "....oYYYYYYo....", "..ooooyddyoooo..", ".oyYooyYYyooYyo.", ".oyyyyyYYyyyyyo.",
+               "..ooooyYYyoooo..", ".....oyYYyo.....", ".....oyYYyo.....", "....oyyYYyyo....", "....oyYddYyo....", "....oyyooyyo....", ".....oo..oo.....", "................"], dict(o="#5a3a08", y="#e0b020", Y="#ffe97a", d="#b07a10", g="#1fd06a")),
+    ("bell", ["................", ".......oo.......", "......oyyo......", ".....oooooo.....", "....oyYYyydo....", "...oyYwYyyydo...", "...oyYYyyyydo...", "..oyYYyyyyyydo..",
+              "..oyYyyyyyyydo..", "..oyYyyyyyyydo..", ".oyYYyyyyyyyydo.", ".oyyyyyyyyydddo.", ".oooooooooooooo.", "......oddo......", ".......oo.......", "................"], dict(o="#5a3a08", y="#f2c832", Y="#ffe97a", d="#c28a12", w="#ffffff")),
+    ("golem_core", ["................", "................", "...oooooooooo...", "..ollllllllmdo..", "..olwllllllmdo..", "..ollmmmmmmmdo..", "..olkkmmmkkmdo..", "..olrrmmmrrmdo..",
+                    "..olmmmnnmmmdo..", "..olmmmnnmmmdo..", "..ommgmnnmmddo..", "..omggmmmmmddo..", "..oddgdddddddo..", "...oooooooooo...", "................", "................"], dict(o="#3a3632", d="#8a857a", m="#c2bdb0", l="#e0dcd0", w="#ffffff", r="#e0281e", k="#5a544a", n="#9a8a80", g="#5a8a3a")),
+    # ── signs for the panels ──
+    ("star", ["................", ".......oo.......", "......oYYo......", "......oYYo......", ".....oYYYYo.....", "ooooooYYYYoooooo", "oyYYYYYYYYYYYYyo", ".oyYYYYYYYYYYyo.",
+              "..oyYYYYYYYYyo..", "...oyYYYYYYyo...", "...oyYYYYYYyo...", "..oyYYYyyYYYyo..", "..oyYYyooyYYyo..", ".oyYyoo..ooyYyo.", ".oooo......oooo.", "................"], dict(o="#6a4a08", y="#e0a81e", Y="#ffe04a")),
+    ("lock", ["................", ".....oooooo.....", "....olllllso....", "...olsoooolso...", "...olo....oso...", "...olo....oso...", "..oooooooooooo..", "..oyYYYYYYYYDo..",
+              "..oyYYYkkYYyDo..", "..oyYYYkkYYyDo..", "..oyYYYYkYYyDo..", "..oyyYYYkYyyDo..", "..oyyyyyyyyDDo..", "..oooooooooooo..", "................", "................"], dict(o="#2a2014", l="#d6dce1", s="#8f979e", y="#e0a81e", Y="#ffe04a", D="#a8741a", k="#2a2014")),
+    ("skull", ["................", "....oooooooo....", "...owwwwwwwso...", "..owwwwwwwwsso..", "..owwwwwwwwsso..", "..owkkkwkkkwso..", "..owkkkwkkkwso..", "..owkkwwwkkwso..",
+               "..owwwwkwwwsso..", "..oswwkwkwwsso..", "...oswwwwwsso...", "...owkwkwkwso...", "...owowowowso...", "....oooooooo....", "................", "................"], dict(o="#2a2a26", w="#f2efe6", s="#b8b4a6", k="#1a1a18")),
+    ("map", ["................", ".oooooooooooooo.", ".oppppPppppPpdo.", ".opgggPpbbbPpdo.", ".opggpPbbbpPpdo.", ".oppppPpbppPpdo.", ".oprppPppppPpdo.", ".opprrPpggpPpdo.",
+             ".oppprPgggpPpdo.", ".oppppPrgppPxdo.", ".oppbbPprppxpdo.", ".opbbbPpprxpxdo.", ".oddddddddddddo.", ".oooooooooooooo.", "................", "................"], dict(o="#4a3a1a", p="#f0e2b4", P="#c9b888", d="#a8966a", g="#6aa84a", b="#4a8ac0", r="#b05a50", x="#d8352a")),
+    ("tab_craft", ["................", ".oooooooooooooo.", ".oTTtTTTTtTTTTo.", ".oTtTTtTTTTtTTo.", ".oDDDDDDDDDDDDo.", ".omssmmmmmmhhmo.", ".omssmmlmmhhhmo.", ".omssmmmmmmhmmo.",
+                   ".omssmmmdmmhmmo.", ".ommsmmmmmmhmmo.", ".olmmmmdmmmhmmo.", ".ommmmmmmmmmmlo.", ".ommdmmmmlmmmmo.", ".oDDDDDDDDDDDDo.", ".oooooooooooooo.", "................"], dict(o="#2a1c0c", T="#c9a870", t="#8a6a3a", D="#4a3320", m="#b8945f", l="#d9b888", d="#7a5c34", s="#c9cdd0", h="#5a3d1e")),
+    ("tab_furnace", ["................", ".oooooooooooooo.", ".olmmlmmmmlmmdo.", ".ommmmmdmmmmmdo.", ".omkkkkkkkkkkmo.", ".omkddddddddkmo.", ".omkkkkkkkkkkmo.", ".olmmmmmmmmmmdo.",
+                     ".omkkkkkkkkkkmo.", ".omkfFkfFFkfkmo.", ".omkFyFFyFFFkmo.", ".omkyYyyYyyYkmo.", ".omkkkkkkkkkkdo.", ".odddddddddddoo.", ".oooooooooooooo.", "................"], dict(o="#1a1a1a", l="#b0b0b0", m="#8a8a8a", d="#5f5f5f", k="#262626", f="#e0501a", F="#ff9a1e", y="#ffd23a", Y="#fff2a0")),
+    ("tab_enchant", ["................", "................", "......p....p....", "...p.....P......", ".ooooooo.ooooooo", "owwwwwwsowwwwwwo", "owkkkkwsowkPkwso", "owwwwwwsowwwwwso",
+                     "owkkPkwsowkkkwso", "owwwwwwsowwwwwso", "owkkkwwsowkkkwso", "owwwwwwsowwwwwso", "orrrrrrrorrrrrro", ".ooooooooooooooo", "................", "................"], dict(o="#2a1430", w="#f6f3ea", s="#c9c5b5", k="#8a7a9a", r="#8a1f2a", p="#b84ff0", P="#e8a8ff")),
+    ("cup", ["................", "..oooooooooooo..", ".ooyYYYYYYYydoo.", "oyoyYwYYYYyydoyo", "oyoyYwYYYYyydoyo", "oyoyYYYYYYyydoyo", ".ooyYYYYYYyydoo.", "...oyYYYYyydo...",
+             "....oyYYyydo....", ".....oyyydo.....", "......oydo......", "......oydo......", "....ooyyydoo....", "...oyYYYyyydo...", "...oooooooooo...", "................"], dict(o="#5a3a08", y="#f2c832", Y="#ffe97a", d="#c28a12", w="#ffffff")),
+    ("bolt", ["................", ".........ooooo..", "........owwlbo..", ".......owwlbo...", "......owwlbo....", ".....owwlbo.....", "....owwwlooo....", "...owwwwwlbo....",
+              "....oooowlbo....", "......owlbo.....", ".....owlbo......", "....owlbo.......", "...owbo.........", "...obo..........", "...oo...........", "................"], dict(o="#1a3a5a", w="#ffffff", l="#cfe6ff", b="#7ab8f0")),
 ]
 NAMES = [i[0] for i in ICONS]
 
@@ -162,12 +342,19 @@ def hexa(h):
     h = h.lstrip("#")
     return tuple(int(h[k:k + 2], 16) for k in (0, 2, 4)) + (255,)
 
-sheet = Image.new("RGBA", (128, 16 * ((len(ICONS) + 7) // 8)), (0, 0, 0, 0))
+ROWS = 15      # always: the scene counts its cells as 8 by 15, and those of the small sheet as 4 by 30
+assert len(ICONS) <= 8 * ROWS
+sheet = Image.new("RGBA", (128, 16 * ROWS), (0, 0, 0, 0))
+small = Image.new("RGBA", (64, 16 * ROWS * 2), (0, 0, 0, 0))
 for k, (name, lines, pal) in enumerate(ICONS):
     assert len(lines) == 16 and all(len(l) == 16 for l in lines), (name, [len(l) for l in lines])
     for y, line in enumerate(lines):
         for x, ch in enumerate(line):
             if ch != ".":
                 sheet.putpixel(((k % 8) * 16 + x, (k // 8) * 16 + y), hexa(pal[ch]))
+                small.putpixel(((k % 4) * 16 + x, (k // 4) * 16 + y), hexa(pal[ch]))
 sheet.save(OUT)
+# The same things again, four to a row: drawn at their own size (hearts, what
+# a land gives), from a sheet tall enough to share its shelf with the big ones.
+small.save(os.path.join(os.path.dirname(OUT), "tiny.png"))
 print(sheet.size, " ".join(f"{n}={k}" for k, n in enumerate(NAMES)))

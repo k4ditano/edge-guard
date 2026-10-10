@@ -1,25 +1,41 @@
 // Edge guard: a battle along the bottom edge of a monitor, over whatever is on
-// it, in the manner of a certain game of blocks. Three heroes hold a camp on
-// the left; waves come from the right —and the spiders by the ceiling and
-// down the wall—. What falls leaves experience and things; a chest comes
-// after each wave —a plain one, or with luck one of iron, of gold or of the
-// End— and waits there until it is pressed. Every five waves the land changes:
-// plains, desert, swamp, tundra, the Nether, the End, each with its own and
-// its own way of hurting; getting to one is a place to come back to when the
-// camp falls. Whoever falls stays down until the wave is won or lost.
+// it, in the manner of a certain game of blocks. A party holds a camp on the
+// left; waves come from the right —and the spiders by the ceiling and down the
+// wall—. What falls leaves experience and things; a chest comes after each
+// wave and waits there until it is pressed.
+//
+// There are six lands of five waves, each with its own, its own way of
+// hurting, the things that are found there more than anywhere, and a lord at
+// the end of it. A lord announces what it is about to do —a mark on the
+// ground, a bar that fills—: TNT or the lightning stop it, a cobweb on the
+// mark catches the ones that leap, and the party can be moved off the fire.
+// When it falls it leaves its trophy, which is what the best things are made
+// with, and the way to the next land opens. The map says where the party is
+// and takes it to any land whose way is open, to stay there if it is told to.
+// With the last lord's Eye there is a new world: harder, and a star stronger.
+//
+// The camp works by itself. The mine digs —press it to fetch what it has; a
+// better pickaxe finds more—, the furnace smelts what is dug, the wheat grows
+// and is reaped with a press, and all three go on while the game is put away
+// or closed, as the party does, holding its land.
 //
 // It is yours to run. Drag a hero to where it should stand. Press the chest
-// or the table of the camp for the crafting table: things are carried with
-// the mouse —pressed and let go somewhere else, or pressed and pressed again;
-// the right button takes half, or puts down one—, laid out on the grid as
-// their recipe says, and what they make is taken from the slot at its right.
-// The book at its left knows every recipe whose ingredients have been found,
-// and lays one out when pressed. The panel at its right is what each hero
-// carries. The bar of nine is the same one seen outside: what is there can
-// be used with a press —TNT, a potion, a web: then press where it should go—.
-// A game controller moves the knight (left stick) and calls a lightning (A);
-// Y silences it. Two small buttons stop it where it is, or put it away into a
-// corner. What is not one of those places lets the click through.
+// or one of the camp's blocks for its table: things are carried with the
+// mouse —pressed and let go somewhere else, or pressed and pressed again; the
+// right button takes half, or puts down one—, laid out on the grid as their
+// recipe says, and what they make is taken from the slot at its right. The
+// book at its left knows every recipe whose ingredients have been found, and
+// lays one out when pressed. The panel at its right is what each hero
+// carries —a weapon, helmet, chestplate, boots and a charm—, and its button
+// spends levels of experience on that hero; the enchanting table spends them,
+// with lapis, on what the hero carries. The bar of nine is the same one seen
+// outside: what is there is used with a press —TNT, a potion, a web: then
+// press where it should go—. The other pages are the map, everything that
+// has been met and what it left, and the feats.
+// A game controller moves the knight (left stick) and calls the lightning
+// (A); Y silences it. Small buttons stop it where it is, put it away into a
+// corner, and call the lightning. What is not one of those places lets the
+// click through.
 // `./play.sh`, or `pleamar --no-hud --scene guard.plm` (pleamar 0.3.0 or newer).
 language 0.4
 scene Guard {
@@ -27,22 +43,25 @@ scene Guard {
     permissions { services: "sound", "gamepad", "files", "files.write" }
 
     // The sheets. Characters: a row each, sixteen pictures of 104 —eight of
-    // walking, eight of striking—; the king twice the size, twelve in two rows
-    // of six; blocks of 78; the ground of each land, a strip of 16 a row; and
-    // the things, pixel art of 16, at twice and at once.
-    image heroes = file "pieces/heroes.png", 1664, 416
-    image foes1 = file "pieces/foes1.png", 1664, 312
-    image foes2 = file "pieces/foes2.png", 1664, 312
-    image boss = file "pieces/boss.png", 1248, 416
-    image blocks = file "pieces/blocks.png", 858, 78
-    image floor = pixels "pieces/ground.png", 256, 96
-    image items = pixels "pieces/items.png", 256, 128
-    image tiny = pixels "pieces/items.png", 128, 64
+    // walking, eight of striking—; the lords, eight each —four and four— in
+    // cells of 126 by 156 drawn a third bigger; blocks of 78; the ground of
+    // each land, a strip of 16; and the things, pixel art of 16, at twice and
+    // at once. (All of a scene's pictures share one square of 2048 a side, in
+    // shelves: they are in this order, and cut as they are, so as to fit it.)
+    image heroes = file "pieces/heroes.png", 1664, 624
+    image blocks = file "pieces/blocks.png", 312, 546
+    image tiny = pixels "pieces/tiny.png", 64, 480
+    image foes = file "pieces/foes.png", 1664, 624
+    image items = pixels "pieces/items.png", 256, 480
+    image floor = pixels "pieces/ground.png", 1536, 16
+    image boss = file "pieces/boss.png", 2016, 468
 
     let ink = #f5f7f5
     let coal = #10141a
     let slot = #8b8b8b
     let dark = #373737
+    let grey = #c6c6c6
+    let lettering = #3f3f3f
 
     // The logic works in the monitor's own pixels: it is told how big it is.
     event wide ->
@@ -50,49 +69,87 @@ scene Guard {
     every 1s { emit wide(screen.width); emit tall(screen.height) }
 
     // ── what the logic says ──
-    fact wave: number = 1
-    fact level: number = 0          // of the whole party
+    fact points: number = 0         // levels of experience not yet spent
     fact xp: number = 0             // how far to the next, 0 to 1
     fact ready: number = 1          // the lightning: 0 just used, 1 ready again
     fact quiet = false
     fact pad = false
     fact at.x: number = 0           // where the last burst was
     fact at.y: number = 0
-    fact up.x: number = 0           // which hero has just got something
+    fact up.x: number = 0           // who has just got something
     fact bolt.x: number = 0
     fact king = false               // a lord is here, and how much is left of it
     fact king.hp: number = 1
+    fact king.dazed = false
+    fact wind: number = 0           // how near what it announced is, 0 to 1
+    fact storm = false
     fact land: number = 0           // which of the six lands this is
+    fact world: number = 1
+    fact world.can = false          // there is an Eye to open the next one with
+    fact stay = false
     fact paused = false
     fact away = false               // put away into its corner
-    fact open = false               // the crafting table
+    fact open = false               // the table of the camp
+    fact tab: number = 0            // its page: 0 crafting · 1 furnace · 2 enchanting · 3 the lands · 4 bestiary · 5 feats
     fact pages = true               // its book of recipes, beside it
     fact aiming = false             // something to throw in hand: the next press says where
     fact armed: number = -1         // which slot of the bar it is from
-    fact auto = false               // it crafts and hands things over by itself
+    fact auto = false               // it crafts, hands things over and spends its levels by itself
     fact can: number = 0            // how many recipes can be made right now
     fact out.cell: number = -1      // what the grid makes, and how many
     fact out.n: number = 0
+    fact fin.cell: number = -1      // the furnace: what is smelted, what burns, what came out
+    fact fin.n: number = 0
+    fact ffuel.cell: number = -1
+    fact ffuel.n: number = 0
+    fact fout.cell: number = -1
+    fact fout.n: number = 0
+    fact furnace.lit = false
+    fact furnace.t: number = 0
+    fact furnace.burn: number = 0
+    fact eitem.cell: number = -1    // the enchanting table: the thing on it, and its lapis
+    fact eitem.glint = false
+    fact eitem.done = false
+    fact elapis.cell: number = -1
+    fact elapis.n: number = 0
+    fact mine.n: number = 0         // what the mine has waiting, and the pickaxe it digs with
+    fact mine.full = false
+    fact mine.pick: number = 54
+    fact farm.ripe = false
     fact hand.cell: number = -1     // what the mouse carries
     fact hand.n: number = 0
+    fact hand.glint = false
     fact hand.x: number = 0
     fact hand.y: number = 0
     fact over.x: number = 0         // the slot the mouse is on
     fact over.y: number = 0
     fact over.on = false
-    text said = "Wave 1"
+    fact tipped = false
+    fact feat.cell: number = 0
+    fact gone.on = false            // what the camp did while nobody looked, told
+    text said = "The Plains"
+    text where = "Plains 1/5"
     text tip = ""
     text toast = ""
     text lord = "Zombie King"
+    text warn = ""
+    text feat = ""
+    text count = ""
+    text gone = ""
+    text gone2 = ""
     event newwave
     event boom
     event levelup
     event smote
     event note
+    event feat
 
     // ── what the hand says ──
     event toggle ->                 // the chest of the camp, or its table
-    event click ->                  // on the crafting table: where, the logic knows
+    event station ->                // the furnace (1) or the enchanting table (2)
+    event dig ->                    // the mine
+    event reap ->                   // the wheat
+    event click ->                  // on the open table: where, the logic knows
     event rclick ->
     event unclick ->
     event use ->                    // on the bar, outside
@@ -100,30 +157,65 @@ scene Guard {
     event drop ->
     event lob ->                    // where what is thrown goes
     event crack ->                  // a chest on the field
+    event bolt ->                   // the lightning
     event halt ->                   // stop where it is, and go on
     event stow ->                   // into its corner, and out
+    event dismiss ->                // what was told of the time away
 
-    model team max 6 { x: number; y: number; cell: number; hp: number; hurt: number; hearts: number; face: number = 1; down: bool; held: bool; ail: number }
-    model horde max 96 { x: number; y: number; turn: number; cell: number; hurt: number; lit: number; sheet: number; size: number = 1; lift: number; wash: number }
+    model team max 8 { x: number; y: number; cell: number; hp: number; hurt: number; hearts: number; face: number = 1; down: bool; held: bool; ail: number; size: number = 1 }
+    model horde max 96 { x: number; y: number; turn: number; cell: number; hurt: number; lit: number; sheet: number; size: number = 1; lift: number; wash: number; dazed: bool }
     model chests max 12 { x: number; y: number; kind: number; opened: bool }
     model shots max 64 { x: number; y: number; turn: number; kind: number }
     model drops max 64 { x: number; y: number; cell: number; size: number = 1 }
     model puffs max 96 { x: number; y: number; age: number; kind: number; size: number }
+    // What a lord has announced, on the ground: 0 a blow · 1 where it lands · 2 fire · 3 where it steps out · 4 a web lying there.
+    model marks max 12 { x: number; w: number; kind: number; t: number }
+    model plots max 2 { stage: number }
     // What is kept: 27 slots, and then the bar of nine.
-    model slots max 36 { cell: number = -1; n: number }
+    model slots max 36 { cell: number = -1; n: number; glint: bool }
     model grid max 9 { cell: number = -1; n: number; ghost: bool }
-    model book max 16 { cell: number = -1; can: bool }
-    model cards max 3 { cell: number; name: text; rank: number; hp: number; s0: number = -1; s1: number = -1; s2: number = -1; own: number = 1; down: bool }
+    model book max 36 { cell: number = -1; can: bool }
+    model offers max 3 { name: text; cost: number; can: bool }
+    model cards max 5 { cell: number; name: text; rank: number; hp: number; s0: number = -1; s1: number = -1; s2: number = -1; s3: number = -1; s4: number = -1
+                        g0: number; g1: number; g2: number; g3: number; own: number = 1; down: bool; cost: number = 1; can: bool }
+    model lands max 6 { name: text; lord: text; boss: number; open: bool; here: bool; felled: number; m0: number = -1; m1: number = -1; m2: number = -1 }
+    model beasts max 24 { name: text; sheet: number; cell: number; wash: number; lord: bool; kills: number; known: bool; d0: number = -1; d1: number = -1; d2: number = -1; d3: number = -1 }
+    model feats max 32 { cell: number; name: text; says: text; done: bool }
+    model gains max 12 { cell: number; n: number }
 
     prop banner = 0 ~400ms
     prop flash = 0 ~450ms
     prop panel = 0 ~160ms
     prop told = 0 ~300ms
+    prop feated = 0 ~300ms
     follow panel = open
     on newwave { banner: 1 ~250ms; banner: 0 after 1900ms }
     on smote { flash: 1 ~0ms; flash: 0 after 40ms }
     on note { told: 1 ~150ms; told: 0 after 3200ms }
+    on feat { feated: 1 ~250ms; feated: 0 after 5s }
     let ground = screen.height - 16
+
+    // A slot, as there: sunk, dark above and to the left.
+    component Slot(x: number, y: number, s: number = 36) {
+        box { from: x, y; size: s, s; color: slot }
+        box { from: x, y; size: s, 2; color: dark }
+        box { from: x, y; size: 2, s; color: dark }
+        box { from: x, y + s - 2; size: s, 2; color: #ffffff }
+        box { from: x + s - 2, y; size: 2, s; color: #ffffff }
+    }
+    // A panel, raised: light above and to the left.
+    component Sheet(x: number, y: number, w: number, h: number, tone: color = grey) {
+        box { from: x, y; size: w, h; color: tone }
+        box { from: x, y; size: w, 3; color: #ffffff }
+        box { from: x, y; size: 3, h; color: #ffffff }
+        box { from: x, y + h - 3; size: w, 3; color: #555555 }
+        box { from: x + w - 3, y; size: 3, h; color: #555555 }
+    }
+    component Button(x: number, y: number, w: number, h: number, tone: color = grey) {
+        box { from: x, y; size: w, h; color: tone }
+        box { from: x, y; size: w, 2; color: #ffffff }
+        box { from: x, y + h - 2; size: w, 2; color: #555555 }
+    }
 
     // ── put away: only its chest shows, in the corner, to bring it back ──
     group {
@@ -131,7 +223,7 @@ scene Guard {
         group {
             pivot: 30, screen.height - 6
             scale: 0.6
-            image blocks { at: -9, screen.height - 72; size: 78, 78; cell: 3, 11 }
+            image blocks { at: -9, screen.height - 72; size: 78, 78; cell: 3, 4, 7 }
         }
         zone box back { from: 4, screen.height - 46; size: 52, 44; cursor: pointer; label: "Bring the game back" }
         on press back { emit stow }
@@ -142,7 +234,7 @@ scene Guard {
 
     // ── the ground of this land, along the edge ──
     repeat n in 0..12 {
-        image floor { at: n * 256, screen.height - 16; size: 256, 16; cell: land, 1, 6 }
+        image floor { at: n * 256, screen.height - 16; size: 256, 16; cell: land, 6, 1 }
     }
     // …and what is in its air: snow, embers, spores, sand.
     particles { at: screen.width / 2, screen.height - 150; area: screen.width, 200; count: 60; life: 2s .. 4s; speed: 20 .. 50; direction: 100deg; spread: 30deg
@@ -155,16 +247,34 @@ scene Guard {
                 size: 2, 2; colors: #e3d59a, #c9b574; opacity: 60%, 0%; shape: square; emit: land == 1 and not paused }
     particles { at: screen.width / 2, screen.height - 90; area: screen.width, 160; count: 40; life: 2s .. 4s; speed: 5 .. 20; spread: 360deg
                 size: 3, 1; colors: #e079fa, #5a1a8a; opacity: 70%, 0%; shape: square; emit: land == 5 and not paused }
+    // A sandstorm, when its king calls one.
+    particles { at: screen.width / 2, screen.height - 120; area: screen.width, 220; count: 220; life: 0.8s .. 1.6s; speed: 400 .. 700; direction: 184deg; spread: 10deg
+                size: 5, 2; colors: #e3d59a, #c9b574; opacity: 80%, 0%; shape: square; emit: storm and not paused }
 
     // Something to throw in hand: anywhere is where it can go.
     zone box field { from: 0, 0; size: screen.width, screen.height; cursor: crosshair; active: aiming }
     on press field { emit lob(pointer.x) }
 
-    // ── the camp: its chest and its crafting table, which open the same thing ──
-    image blocks { at: 56, ground - 66; size: 78, 78; cell: if(open, 4, 3), 11 }
-    image blocks { at: 124, ground - 67; size: 78, 78; cell: 0, 11 }
+    // ── the camp: its chest and its crafting table, which open the same
+    //    thing; the furnace, the enchanting table, the mine and the wheat ──
+    image blocks { at: 56, ground - 66; size: 78, 78; cell: if(open and tab == 0, 4, 3), 4, 7 }
+    image blocks { at: 124, ground - 67; size: 78, 78; cell: 0, 4, 7 }
+    image blocks { at: 192, ground - 67; size: 78, 78; cell: if(furnace.lit, 12, 11), 4, 7 }
+    image blocks { at: 260, ground - 67; size: 78, 78; cell: 13, 4, 7 }
+    image blocks { at: 328, ground - 67; size: 78, 78; cell: 14, 4, 7 }
+    for p in plots {
+        image blocks { at: 400 + p.index * 62, ground - 67; size: 78, 78; cell: 15 + p.stage, 4, 7 }
+    }
     zone box stash { at: 130, ground - 30; size: 140, 62; cursor: pointer; label: "The crafting table" }
     on press stash { emit toggle }
+    zone box smelter { at: 231, ground - 30; size: 62, 62; cursor: pointer; label: "The furnace" }
+    on press smelter { emit station(1) }
+    zone box spells { at: 299, ground - 30; size: 62, 62; cursor: pointer; label: "The enchanting table" }
+    on press spells { emit station(2) }
+    zone box pit { at: 367, ground - 30; size: 62, 62; cursor: pointer; label: "The mine: fetch what it has dug" }
+    on press pit { emit dig }
+    zone box wheat { at: 470, ground - 26; size: 124, 54; cursor: pointer; label: "The wheat: reap what is golden" }
+    on press wheat { emit reap }
     // (Something can be made: it says so.)
     group {
         opacity: if(can > 0 and not open, 1, 0)
@@ -172,53 +282,82 @@ scene Guard {
         ellipse { at: 164, ground - 80; radius: 10; color: #ffd166 }
         text "!" { at: 164, ground - 80; anchor: center; size: 13; weight: 700; family: "Monocraft"; color: coal }
     }
+    // The mine's pickaxe, at it, and how much waits there.
+    group {
+        pivot: 372, ground - 62
+        rotate: sin(time * 420) * 16deg
+        image tiny { at: 364, ground - 78; size: 16, 16; cell: mine.pick, 4, 30 }
+    }
+    text number(mine.n) { at: 367, ground - 88; anchor: center; size: 12; weight: 700; family: "Monocraft"; color: if(mine.full, #ffd166, ink); outline: 2.5, coal; show: mine.n > 0 }
+    group {
+        opacity: if(farm.ripe, 1, 0)
+        move: 0, sin(time * 300 + 120) * 3
+        ellipse { at: 470, ground - 72; radius: 10; color: #ffd166 }
+        text "!" { at: 470, ground - 72; anchor: center; size: 13; weight: 700; family: "Monocraft"; color: coal }
+    }
+
+    // ── what a lord has announced, on the ground ──
+    for m in marks {
+        box { at: m.x, ground - 5; size: m.w, 10; color: pick(m.kind, #ff4a3a, #7fd92e, #ff8a2a, #c53df2, #f2f2f2)
+              opacity: if(m.kind == 4, 0.45 * m.t, 0.4 + 0.3 * sin(time * 900)) }
+        box { at: m.x, ground - 5 - 70 * m.t; size: m.w * 0.5, 140 * m.t; color: #ff8a2a; opacity: 0.22; show: m.kind == 2 }
+        image items { at: m.x - 48, ground - 80; size: 96, 96; cell: 18, 8, 15; opacity: 0.75 * m.t; show: m.kind == 4 }
+        group {
+            show: m.kind < 4
+            move: 0, sin(time * 600) * 4
+            ellipse { at: m.x, ground - 40; radius: 12; color: pick(m.kind, #ff4a3a, #7fd92e, #ff8a2a, #c53df2, #f2f2f2) }
+            text "!" { at: m.x, ground - 40; anchor: center; size: 15; weight: 700; family: "Monocraft"; color: coal }
+        }
+    }
 
     // ── smoke, bursts and what a blow leaves: squares, as there ──
     for p in puffs {
-        // 0 smoke · 1 a burst · 2 the purple of what comes from elsewhere · 3 a sword's sweep · 4 a potion's splash · 5 a healing one's · 6 a web
+        // 0 smoke · 1 a burst · 2 the purple of what comes from elsewhere · 3 a sword's sweep · 4 a potion's splash · 5 a healing one's · 7 fire
         box { at: p.x, p.y; size: p.size * (0.5 + p.age), p.size * (0.5 + p.age); rotate: p.age * 40deg
-              color: if(p.kind == 1, mix(#fff3c4, #5a5a5a, p.age), if(p.kind == 2, mix(#e079fa, #5a1a8a, p.age), if(p.kind == 4, mix(#f2c9f7, #c94fd8, p.age), if(p.kind == 5, mix(#ffd6de, #f2587a, p.age), mix(#f2f2f2, #9a9a9a, p.age)))))
+              color: if(p.kind == 1, mix(#fff3c4, #5a5a5a, p.age), if(p.kind == 2, mix(#e079fa, #5a1a8a, p.age), if(p.kind == 4, mix(#f2c9f7, #c94fd8, p.age), if(p.kind == 5, mix(#ffd6de, #f2587a, p.age), if(p.kind == 7, mix(#ffd166, #c43d1e, p.age), mix(#f2f2f2, #9a9a9a, p.age))))))
               opacity: 1 - p.age; show: p.kind != 3 }
         arc { at: p.x, p.y; radius: 32 + 22 * p.age; span: 130deg; width: 8 * (1 - p.age); rotate: 70deg; color: #ffffff; opacity: 1 - p.age; show: p.kind == 3 }
     }
 
     // ── the chests the waves leave: wood, iron, gold, or of the End. Each waits to be pressed ──
     for c in chests {
-        image blocks { at: c.x - 39, c.y - 66; size: 78, 78; cell: 3 + c.kind * 2 + if(c.opened, 1, 0), 11 }
+        image blocks { at: c.x - 39, c.y - 66; size: 78, 78; cell: 3 + c.kind * 2 + if(c.opened, 1, 0), 4, 7 }
         zone box lid { at: c.x, c.y - 26; size: 56, 54; cursor: pointer; show: not c.opened; label: "Open this chest" }
         on press lid { emit crack(c.index) }
     }
 
-    // ── the horde. Hurt, it goes red; a creeper about to go off, white; and
-    //    the ones of another land are the same shapes in that land's colour ──
+    // ── the horde. Hurt, it goes red; about to do something, white; the
+    //    ones of another land are the same shapes in that land's colour, and
+    //    a champion is golden ──
     for f in horde {
         // Its feet are where it turns round: on the ceiling and down the wall they stay on the edge.
         group {
             pivot: f.x, f.y
             rotate: f.turn * 1deg
             scale: f.size
-            image foes1 { at: f.x - 52, f.y - 99 + f.lift; size: 104, 104; cell: f.cell, 16, 3; show: f.sheet == 0 }
-            image foes1 { at: f.x - 52, f.y - 99 + f.lift; size: 104, 104; cell: f.cell, 16, 3; tint: if(f.wash == 1, #d9c28a, if(f.wash == 2, #9fd6ff, if(f.wash == 3, #c4321a, if(f.wash == 4, #f09ab0, if(f.wash == 5, #a05ad8, #1a1a1a))))); opacity: 0.5; show: f.sheet == 0 and f.wash > 0 }
-            image foes1 { at: f.x - 52, f.y - 99 + f.lift; size: 104, 104; cell: f.cell, 16, 3; tint: #ff2a2a; opacity: f.hurt * 0.55; show: f.sheet == 0 }
-            image foes1 { at: f.x - 52, f.y - 99 + f.lift; size: 104, 104; cell: f.cell, 16, 3; tint: #ffffff; opacity: f.lit * 0.8; show: f.sheet == 0 }
-            image foes2 { at: f.x - 52, f.y - 99 + f.lift; size: 104, 104; cell: f.cell, 16, 3; show: f.sheet == 1 }
-            image foes2 { at: f.x - 52, f.y - 99 + f.lift; size: 104, 104; cell: f.cell, 16, 3; tint: if(f.wash == 1, #d9c28a, if(f.wash == 2, #9fd6ff, if(f.wash == 3, #c4321a, if(f.wash == 4, #f09ab0, if(f.wash == 5, #a05ad8, #1a1a1a))))); opacity: 0.5; show: f.sheet == 1 and f.wash > 0 }
-            image foes2 { at: f.x - 52, f.y - 99 + f.lift; size: 104, 104; cell: f.cell, 16, 3; tint: #ff2a2a; opacity: f.hurt * 0.55; show: f.sheet == 1 }
-            image boss { at: f.x - 104, f.y - 193; size: 208, 208; cell: f.cell, 6, 2; show: f.sheet == 2 }
-            image boss { at: f.x - 104, f.y - 193; size: 208, 208; cell: f.cell, 6, 2; tint: if(f.wash == 1, #d9c28a, if(f.wash == 2, #9fd6ff, if(f.wash == 3, #c4321a, if(f.wash == 4, #f09ab0, if(f.wash == 5, #a05ad8, #1a1a1a))))); opacity: 0.5; show: f.sheet == 2 and f.wash > 0 }
-            image boss { at: f.x - 104, f.y - 193; size: 208, 208; cell: f.cell, 6, 2; tint: #ff2a2a; opacity: f.hurt * 0.55; show: f.sheet == 2 }
+            image foes { at: f.x - 52, f.y - 99 + f.lift; size: 104, 104; cell: f.cell, 16, 6; show: f.sheet == 0 }
+            image foes { at: f.x - 52, f.y - 99 + f.lift; size: 104, 104; cell: f.cell, 16, 6; tint: pick(f.wash, #1a1a1a, #d9c28a, #9fd6ff, #c4321a, #f09ab0, #a05ad8, #1a1a1a, #ffd24a); opacity: 0.5; show: f.sheet == 0 and f.wash > 0 }
+            image foes { at: f.x - 52, f.y - 99 + f.lift; size: 104, 104; cell: f.cell, 16, 6; tint: #ff2a2a; opacity: f.hurt * 0.55; show: f.sheet == 0 }
+            image foes { at: f.x - 52, f.y - 99 + f.lift; size: 104, 104; cell: f.cell, 16, 6; tint: #ffffff; opacity: f.lit * 0.8; show: f.sheet == 0 }
+            image boss { at: f.x - 84, f.y - 193; size: 168, 208; cell: f.cell, 16, 3; show: f.sheet == 2 }
+            image boss { at: f.x - 84, f.y - 193; size: 168, 208; cell: f.cell, 16, 3; tint: #ff2a2a; opacity: f.hurt * 0.55; show: f.sheet == 2 }
+            image boss { at: f.x - 84, f.y - 193; size: 168, 208; cell: f.cell, 16, 3; tint: #ffffff; opacity: f.lit * 0.6; show: f.sheet == 2 }
         }
         // (A witch of theirs is the camp's own, seen from the other side.)
         group {
             pivot: f.x, f.y
-            scale: -1, 1
-            image heroes { at: f.x - 52, f.y - 99; size: 104, 104; cell: f.cell, 16, 4; show: f.sheet == 3 }
-            image heroes { at: f.x - 52, f.y - 99; size: 104, 104; cell: f.cell, 16, 4; tint: #3aa655; opacity: 0.3; show: f.sheet == 3 }
-            image heroes { at: f.x - 52, f.y - 99; size: 104, 104; cell: f.cell, 16, 4; tint: #ff2a2a; opacity: f.hurt * 0.55; show: f.sheet == 3 }
+            scale: -f.size, f.size
+            image heroes { at: f.x - 52, f.y - 99; size: 104, 104; cell: f.cell, 16, 6; show: f.sheet == 3 }
+            image heroes { at: f.x - 52, f.y - 99; size: 104, 104; cell: f.cell, 16, 6; tint: if(f.wash == 7, #ffd24a, #3aa655); opacity: 0.3; show: f.sheet == 3 }
+            image heroes { at: f.x - 52, f.y - 99; size: 104, 104; cell: f.cell, 16, 6; tint: #ff2a2a; opacity: f.hurt * 0.55; show: f.sheet == 3 }
+        }
+        // Dazed: it sees stars.
+        repeat n in 0..3 {
+            box { at: f.x + sin(time * 400 + n * 120) * 36, f.y - 178 * f.size + sin(time * 400 + n * 120 + 90) * 8; size: 9, 9; rotate: 45deg; color: #ffe27a; show: f.dazed }
         }
     }
 
-    // ── the party: the three, and the wolves they have tamed ──
+    // ── the party: the heroes, and the wolves they have tamed ──
     for h in team {
         // A hero is picked up by itself and put down where it should stand.
         zone box grab { at: h.x, h.y - 46; size: 52, 92; cursor: grab; show: h.hearts > 3; label: "Move this hero" }
@@ -227,19 +366,19 @@ scene Guard {
         ellipse { at: h.x, h.y - 2; radius: 26; scale: 1, 0.22; color: #000000; opacity: if(h.held, 0.35, 0) }
         group {
             pivot: h.x, h.y
-            scale: h.face, 1
+            scale: h.face * h.size, h.size
             // Fallen, it lies there until the wave is over.
             rotate: if(h.down, -88deg, 0)
             move: 0, if(h.held, -12, 0)
             opacity: if(h.down, 0.55, 1)
-            image heroes { at: h.x - 52, h.y - 99; size: 104, 104; cell: h.cell, 16, 4 }
+            image heroes { at: h.x - 52, h.y - 99; size: 104, 104; cell: h.cell, 16, 6 }
             // (Slowed it goes green, frozen blue, burning orange.)
-            image heroes { at: h.x - 52, h.y - 99; size: 104, 104; cell: h.cell, 16, 4; tint: if(h.ail == 1, #7a8a3a, if(h.ail == 2, #9fd6ff, #ff8a2a)); opacity: 0.45; show: h.ail > 0 }
-            image heroes { at: h.x - 52, h.y - 99; size: 104, 104; cell: h.cell, 16, 4; tint: #ff2a2a; opacity: h.hurt * 0.55 }
+            image heroes { at: h.x - 52, h.y - 99; size: 104, 104; cell: h.cell, 16, 6; tint: if(h.ail == 1, #7a8a3a, if(h.ail == 2, #9fd6ff, #ff8a2a)); opacity: 0.45; show: h.ail > 0 }
+            image heroes { at: h.x - 52, h.y - 99; size: 104, 104; cell: h.cell, 16, 6; tint: #ff2a2a; opacity: h.hurt * 0.55 }
         }
         repeat n in 0..5 {
             image tiny { at: h.x - h.hearts * 7 + n * 14 - 1, h.y - if(h.hearts > 3, 116, 80); size: 16, 16
-                         cell: 28 - round(clamp(h.hp * h.hearts * 2 - n * 2, 0, 2)), 8, 4; show: n < h.hearts and not h.down }
+                         cell: 28 - round(clamp(h.hp * h.hearts * 2 - n * 2, 0, 2)), 4, 30; show: n < h.hearts and not h.down }
         }
     }
 
@@ -250,16 +389,16 @@ scene Guard {
             rotate: s.turn * 1deg
             scale: 0.8
             // 0 an arrow · 1 a potion · 2 TNT · 3 an arrow of theirs · 4 TNT, lit · 5 a healing potion · 6 a web
-            image items { at: s.x - 16, s.y - 16; size: 32, 32; cell: 24, 8, 4; show: s.kind == 0 or s.kind == 3 }
-            image items { at: s.x - 16, s.y - 16; size: 32, 32; cell: 22, 8, 4; show: s.kind == 1 }
-            image items { at: s.x - 16, s.y - 16; size: 32, 32; cell: 17, 8, 4; show: s.kind == 5 }
-            image items { at: s.x - 16, s.y - 16; size: 32, 32; cell: 18, 8, 4; show: s.kind == 6 }
+            image items { at: s.x - 16, s.y - 16; size: 32, 32; cell: 24, 8, 15; show: s.kind == 0 or s.kind == 3 }
+            image items { at: s.x - 16, s.y - 16; size: 32, 32; cell: 22, 8, 15; show: s.kind == 1 }
+            image items { at: s.x - 16, s.y - 16; size: 32, 32; cell: 17, 8, 15; show: s.kind == 5 }
+            image items { at: s.x - 16, s.y - 16; size: 32, 32; cell: 18, 8, 15; show: s.kind == 6 }
         }
         group {
             pivot: s.x, s.y
             scale: 0.6
-            image blocks { at: s.x - 39, s.y - 67; size: 78, 78; cell: 1, 11; show: s.kind == 2 }
-            image blocks { at: s.x - 39, s.y - 67; size: 78, 78; cell: 2, 11; show: s.kind == 4 }
+            image blocks { at: s.x - 39, s.y - 67; size: 78, 78; cell: 1, 4, 7; show: s.kind == 2 }
+            image blocks { at: s.x - 39, s.y - 67; size: 78, 78; cell: 2, 4, 7; show: s.kind == 4 }
         }
     }
 
@@ -268,7 +407,7 @@ scene Guard {
         group {
             pivot: d.x, d.y
             scale: d.size
-            image items { at: d.x - 16, d.y - 16; size: 32, 32; cell: d.cell, 8, 4 }
+            image items { at: d.x - 16, d.y - 16; size: 32, 32; cell: d.cell, 8, 15 }
         }
     }
 
@@ -281,26 +420,31 @@ scene Guard {
     particles { at: up.x, ground - 44; area: 50, 70; count: 40; life: 0.6s .. 1.3s; speed: 30 .. 120; direction: -90deg; spread: 40deg
                 size: 5, 2; colors: #e6ff7a, #9be84a; shape: square; burst: levelup }
 
-    // ── with the table shut: the wave, the party's level, and the bar of nine ──
+    // ── with the table shut: where the party is, its levels to spend, and the bar of nine ──
     let hub.x = 24
     let hub.y = ground - 198
     group {
         show: panel < 0.98
         opacity: 1 - panel
-        text "Wave {wave}" { at: 26, ground - 150; anchor: left center; size: 13; weight: 700; family: "Monocraft"; color: ink; outline: 2.5, coal }
+        text where { at: 26, ground - 150; anchor: left center; size: 13; weight: 700; family: "Monocraft"; color: ink; outline: 2.5, coal }
+        repeat n in 0..6 {
+            image tiny { at: 26 + n * 12, ground - 176 - 44; size: 16, 16; cell: 66, 4, 30; show: n < world - 1 }
+        }
         box { from: 24, ground - 136; size: 190, 8; color: #1a1a1a; opacity: 85% }
         box { from: 25, ground - 135; size: 188 * xp, 6; color: #7fd92e }
         box { from: 25, ground - 135; size: 188 * xp, 2; color: #c8ff7a }
-        text number(level) { at: 119, ground - 142; anchor: center; size: 14; weight: 700; family: "Monocraft"; color: #9be84a; outline: 2.5, coal }
-        arc { at: 232, ground - 132; radius: 9; span: ready * 360deg; rotate: ready * 180deg; width: 3.5; color: if(ready > 0.999, #cfe6ff, #5b5670); opacity: if(pad, 1, 0) }
-        text "A" { at: 232, ground - 132; anchor: center; size: 9; weight: 700; family: "Monocraft"; color: ink; outline: 2, coal; opacity: if(pad, 1, 0) }
+        image tiny { at: 172, ground - 158; size: 16, 16; cell: 25, 4, 30; show: points > 0 }
+        text number(points) { at: 214, ground - 150; anchor: right center; size: 13; weight: 700; family: "Monocraft"; color: #9be84a; outline: 2.5, coal; show: points > 0 }
         line { from: 222, ground - 142; to: 242, ground - 122; width: 3; color: #e0281e; opacity: if(quiet, 1, 0) }
-        // Two buttons: stop where it is, and away into its corner.
-        box { from: 252, ground - 144; size: 24, 24; color: #c6c6c6 }
-        box { from: 252, ground - 144; size: 24, 2; color: #ffffff }
-        box { from: 252, ground - 122; size: 24, 2; color: #555555 }
-        box { from: 259, ground - 138; size: 4, 12; color: #3f3f3f; opacity: if(paused, 0, 1) }
-        box { from: 266, ground - 138; size: 4, 12; color: #3f3f3f; opacity: if(paused, 0, 1) }
+        // Three buttons: the lightning, stop where it is, and away into its corner.
+        Button(222, ground - 144, 24, 24)
+        image tiny { at: 226, ground - 140; size: 16, 16; cell: 74, 4, 30 }
+        box { from: 222, ground - 144; size: 24, 24 * (1 - ready); color: #101010; opacity: 60% }
+        zone box strike { from: 222, ground - 144; size: 24, 24; cursor: pointer; label: "The lightning" }
+        on press strike { emit bolt }
+        Button(252, ground - 144, 24, 24)
+        box { from: 259, ground - 138; size: 4, 12; color: lettering; opacity: if(paused, 0, 1) }
+        box { from: 266, ground - 138; size: 4, 12; color: lettering; opacity: if(paused, 0, 1) }
         path { at: 260, ground - 132; color: #3f8a12; opacity: if(paused, 1, 0)
                move 0, -7
                line 11, 0
@@ -308,10 +452,8 @@ scene Guard {
                close }
         zone box stop { from: 252, ground - 144; size: 24, 24; cursor: pointer; label: "Pause, or go on" }
         on press stop { emit halt }
-        box { from: 282, ground - 144; size: 24, 24; color: #c6c6c6 }
-        box { from: 282, ground - 144; size: 24, 2; color: #ffffff }
-        box { from: 282, ground - 122; size: 24, 2; color: #555555 }
-        box { from: 288, ground - 129; size: 12, 4; color: #3f3f3f }
+        Button(282, ground - 144, 24, 24)
+        box { from: 288, ground - 129; size: 12, 4; color: lettering }
         zone box tuck { from: 282, ground - 144; size: 24, 24; cursor: pointer; label: "Put the game away" }
         on press tuck { emit stow }
 
@@ -321,19 +463,34 @@ scene Guard {
         for s in slots {
             box { from: hub.x + (s.index - 27) * 40, hub.y; size: 40, 40; color: #1d1d1d; opacity: 80%; show: s.index >= 27 }
             box { from: hub.x + (s.index - 27) * 40 + 1, hub.y + 1; size: 38, 38; stroke: 2; color: if(armed == s.index - 27, #ffffff, #8b8b8b); show: s.index >= 27 }
-            image items { at: hub.x + (s.index - 27) * 40 + 4, hub.y + 4; size: 32, 32; cell: s.cell, 8, 4; show: s.index >= 27 and s.cell >= 0 }
+            image items { at: hub.x + (s.index - 27) * 40 + 4, hub.y + 4; size: 32, 32; cell: s.cell, 8, 15; show: s.index >= 27 and s.cell >= 0 }
             text number(s.n) { at: hub.x + (s.index - 27) * 40 + 37, hub.y + 31; anchor: right center; size: 12; weight: 700; family: "Monocraft"; color: ink; outline: 2, #2a2a2a; show: s.index >= 27 and s.n > 1 }
+        }
+
+        // What the camp did while nobody looked: there until it is pressed.
+        group {
+            show: gone.on
+            box { from: 24, hub.y - 132; size: 470, 100; color: #1b0b1f; opacity: 94% }
+            box { from: 24, hub.y - 132; size: 470, 100; stroke: 2; color: #2c0a5c }
+            text gone { at: 36, hub.y - 116; anchor: left center; size: 12; weight: 700; family: "Monocraft"; color: #ffe27a }
+            text gone2 { at: 36, hub.y - 98; anchor: left center; size: 10; weight: 700; family: "Monocraft"; color: ink }
+            for g in gains {
+                image items { at: 34 + g.index * 41, hub.y - 82; size: 32, 32; cell: g.cell, 8, 15 }
+                text number(g.n) { at: 34 + g.index * 41 + 34, hub.y - 44; anchor: right center; size: 11; weight: 700; family: "Monocraft"; color: ink; outline: 2, #2a2a2a }
+            }
+            zone box gonehit { from: 24, hub.y - 132; size: 470, 100; cursor: pointer; label: "What the camp did while you were away" }
+            on press gonehit { emit dismiss }
         }
     }
     text "Paused" { at: screen.width / 2, screen.height - 260; anchor: center; size: 30; weight: 700; family: "Monocraft"; color: ink; outline: 4, coal; opacity: if(paused, 1, 0) }
-    text toast { at: 26, hub.y - 14 - 6 * told; anchor: left center; size: 12; weight: 700; family: "Monocraft"; color: #ffe27a; outline: 2.5, coal; opacity: told }
+    text toast { at: 26, hub.y - 14 - 6 * told - if(open, 400, 0); anchor: left center; size: 12; weight: 700; family: "Monocraft"; color: #ffe27a; outline: 2.5, coal; opacity: told }
 
-    // ── the crafting table: the book at its left, the party at its right ──
+    // ── the table of the camp: its pages across the top ──
     // (The logic knows where every slot is: these numbers are its own.)
     let gx = 24
     let gy = ground - 150 - 332
     let mx = gx + if(pages, 298, 0)
-    let wide = if(pages, 298, 0) + 352 + 234
+    let wide = if(tab > 2, 968, if(pages, 298, 0) + 352 + 4 + 314)
     group {
         show: panel > 0.02
         opacity: panel
@@ -343,131 +500,275 @@ scene Guard {
         on press table { emit click }
         on press right table { emit rclick }
         on release table { emit unclick }
+        zone box leaves { from: gx, gy - 36; size: 276, 36; cursor: pointer; label: "The table's pages" }
+        on press leaves { emit click }
+        repeat i in 0..6 {
+            box { from: gx + i * 46, gy - 36; size: 44, 40; color: if(tab == i, grey, slot) }
+            box { from: gx + i * 46, gy - 36; size: 44, 3; color: #ffffff }
+            box { from: gx + i * 46, gy - 36; size: 3, 36; color: #ffffff }
+            box { from: gx + i * 46 + 41, gy - 36; size: 3, 36; color: #555555 }
+            image items { at: gx + i * 46 + 6, gy - 34; size: 32, 32; cell: pick(i, 70, 71, 72, 69, 68, 73), 8, 15 }
+        }
 
-        // The book: every recipe whose ingredients have been found. Dark red, something is short.
+        // ── crafting, the furnace and the enchanting table: the book at their left, the party at their right ──
         group {
-            show: pages
-            box { from: gx, gy; size: 294, 332; color: #c6c6c6 }
-            box { from: gx, gy; size: 294, 3; color: #ffffff }
-            box { from: gx, gy; size: 3, 332; color: #ffffff }
-            box { from: gx, gy + 329; size: 294, 3; color: #555555 }
-            box { from: gx + 291, gy; size: 3, 332; color: #555555 }
-            image items { at: gx + 12, gy + 8; size: 32, 32; cell: 29, 8, 4 }
-            text "Recipes" { at: gx + 52, gy + 24; anchor: left center; size: 13; weight: 700; family: "Monocraft"; color: #3f3f3f }
-            for r in book {
-                box { from: gx + 20 + mod(r.index, 4) * 64, gy + 50 + floor(r.index / 4) * 68; size: 58, 58; color: if(r.can, #f2f2f2, #b05a50); show: r.cell >= 0 }
-                box { from: gx + 20 + mod(r.index, 4) * 64, gy + 50 + floor(r.index / 4) * 68; size: 58, 3; color: #ffffff; show: r.cell >= 0 }
-                box { from: gx + 20 + mod(r.index, 4) * 64, gy + 105 + floor(r.index / 4) * 68; size: 58, 3; color: #555555; show: r.cell >= 0 }
-                image items { at: gx + 33 + mod(r.index, 4) * 64, gy + 63 + floor(r.index / 4) * 68; size: 32, 32; cell: r.cell, 8, 4; show: r.cell >= 0 }
-            }
-        }
-
-        // The table itself.
-        box { from: mx, gy; size: 352, 332; color: #c6c6c6 }
-        box { from: mx, gy; size: 352, 3; color: #ffffff }
-        box { from: mx, gy; size: 3, 332; color: #ffffff }
-        box { from: mx, gy + 329; size: 352, 3; color: #555555 }
-        box { from: mx + 349, gy; size: 3, 332; color: #555555 }
-        text "Crafting" { at: mx + 60, gy + 20; anchor: left center; size: 13; weight: 700; family: "Monocraft"; color: #3f3f3f }
-        text "Inventory" { at: mx + 16, gy + 154; anchor: left center; size: 13; weight: 700; family: "Monocraft"; color: #3f3f3f }
-        // The book's own button.
-        box { from: mx + 10, gy + 68; size: 40, 36; color: if(pages, #9fd79a, #adadad) }
-        box { from: mx + 10, gy + 68; size: 40, 2; color: #ffffff }
-        box { from: mx + 10, gy + 102; size: 40, 2; color: #555555 }
-        image items { at: mx + 14, gy + 70; size: 32, 32; cell: 29, 8, 4 }
-        for g in grid {
-            box { from: mx + 60 + mod(g.index, 3) * 36, gy + 34 + floor(g.index / 3) * 36; size: 36, 36; color: slot }
-            box { from: mx + 60 + mod(g.index, 3) * 36, gy + 34 + floor(g.index / 3) * 36; size: 36, 2; color: dark }
-            box { from: mx + 60 + mod(g.index, 3) * 36, gy + 34 + floor(g.index / 3) * 36; size: 2, 36; color: dark }
-            box { from: mx + 60 + mod(g.index, 3) * 36, gy + 68 + floor(g.index / 3) * 36; size: 36, 2; color: #ffffff }
-            box { from: mx + 94 + mod(g.index, 3) * 36, gy + 34 + floor(g.index / 3) * 36; size: 2, 36; color: #ffffff }
-            image items { at: mx + 62 + mod(g.index, 3) * 36, gy + 36 + floor(g.index / 3) * 36; size: 32, 32; cell: g.cell, 8, 4; opacity: if(g.ghost, 0.35, 1); show: g.cell >= 0 }
-            text number(g.n) { at: mx + 94 + mod(g.index, 3) * 36, gy + 62 + floor(g.index / 3) * 36; anchor: right center; size: 12; weight: 700; family: "Monocraft"; color: ink; outline: 2, #2a2a2a; show: g.n > 1 }
-        }
-        // The arrow, and what comes out.
-        box { from: mx + 180, gy + 82; size: 30, 8; color: slot }
-        path { at: mx + 210, gy + 86; color: slot
-               move 0, -12
-               line 16, 0
-               line 0, 12
-               close }
-        box { from: mx + 240, gy + 62; size: 52, 52; color: slot }
-        box { from: mx + 240, gy + 62; size: 52, 2; color: dark }
-        box { from: mx + 240, gy + 62; size: 2, 52; color: dark }
-        box { from: mx + 240, gy + 112; size: 52, 2; color: #ffffff }
-        box { from: mx + 290, gy + 62; size: 2, 52; color: #ffffff }
-        image items { at: mx + 250, gy + 72; size: 32, 32; cell: out.cell, 8, 4; show: out.cell >= 0 }
-        text number(out.n) { at: mx + 284, gy + 100; anchor: right center; size: 12; weight: 700; family: "Monocraft"; color: ink; outline: 2, #2a2a2a; show: out.n > 1 }
-        // By itself, or by hand.
-        box { from: mx + 304, gy + 16; size: 18, 18; color: slot }
-        box { from: mx + 304, gy + 16; size: 18, 2; color: dark }
-        box { from: mx + 304, gy + 16; size: 2, 18; color: dark }
-        box { from: mx + 308, gy + 20; size: 10, 10; color: #3f8a12; opacity: if(auto, 1, 0) }
-        text "auto" { at: mx + 326, gy + 25; anchor: left center; size: 9; weight: 700; family: "Monocraft"; color: #3f3f3f }
-        // What is kept, and under it the bar of nine.
-        for s in slots {
-            let sx = mx + 16 + mod(s.index, 9) * 36
-            let sy = gy + if(s.index < 27, 168 + floor(s.index / 9) * 36, 284)
-            box { from: sx, sy; size: 36, 36; color: slot }
-            box { from: sx, sy; size: 36, 2; color: dark }
-            box { from: sx, sy; size: 2, 36; color: dark }
-            box { from: sx, sy + 34; size: 36, 2; color: #ffffff }
-            box { from: sx + 34, sy; size: 2, 36; color: #ffffff }
-            image items { at: sx + 2, sy + 2; size: 32, 32; cell: s.cell, 8, 4; show: s.cell >= 0 }
-            text number(s.n) { at: sx + 34, sy + 28; anchor: right center; size: 12; weight: 700; family: "Monocraft"; color: ink; outline: 2, #2a2a2a; show: s.n > 1 }
-        }
-
-        // The party: a weapon, armour and a charm each.
-        let tx = mx + 356
-        box { from: tx, gy; size: 230, 332; color: #c6c6c6 }
-        box { from: tx, gy; size: 230, 3; color: #ffffff }
-        box { from: tx, gy; size: 3, 332; color: #ffffff }
-        box { from: tx, gy + 329; size: 230, 3; color: #555555 }
-        box { from: tx + 227, gy; size: 3, 332; color: #555555 }
-        for k in cards {
-            let cy = gy + 10 + k.index * 106
-            box { from: tx + 8, cy; size: 214, 100; color: #b4b4b4 }
-            box { from: tx + 8, cy; size: 214, 2; color: dark }
-            box { from: tx + 8, cy; size: 2, 100; color: dark }
+            show: tab < 3
+            // The book: every recipe whose ingredients have been found. Dark red, something is short.
             group {
-                pivot: tx + 50, cy + 98
-                scale: 0.9
-                image heroes { at: tx - 2, cy - 1; size: 104, 104; cell: k.cell, 16, 4; opacity: if(k.down, 0.3, 1) }
+                show: pages
+                Sheet(gx, gy, 294, 332)
+                image items { at: gx + 10, gy + 6; size: 32, 32; cell: 29, 8, 15 }
+                text "Recipes" { at: gx + 50, gy + 22; anchor: left center; size: 13; weight: 700; family: "Monocraft"; color: lettering }
+                for r in book {
+                    let rx = gx + 9 + mod(r.index, 6) * 46
+                    let ry = gy + 46 + floor(r.index / 6) * 46
+                    Button(rx, ry, 44, 44, if(r.can, #f2f2f2, #b05a50))
+                    image items { at: rx + 6, ry + 6; size: 32, 32; cell: r.cell, 8, 15 }
+                }
             }
-            text k.name { at: tx + 100, cy + 14; anchor: left center; size: 12; weight: 700; family: "Monocraft"; color: #2a2a2a }
-            text number(k.rank) { at: tx + 214, cy + 14; anchor: right center; size: 13; weight: 700; family: "Monocraft"; color: #3f8a12 }
-            repeat n in 0..5 {
-                image tiny { at: tx + 100 + n * 15, cy + 26; size: 16, 16; cell: 28 - round(clamp(k.hp * 10 - n * 2, 0, 2)), 8, 4 }
+
+            Sheet(mx, gy, 352, 332)
+            text pick(tab, "Crafting", "Furnace", "Enchanting") { at: mx + 60, gy + 20; anchor: left center; size: 13; weight: 700; family: "Monocraft"; color: lettering }
+            text "Inventory" { at: mx + 16, gy + 154; anchor: left center; size: 13; weight: 700; family: "Monocraft"; color: lettering }
+            // The levels there are to spend.
+            image tiny { at: mx + 226, gy + 12; size: 16, 16; cell: 25, 4, 30 }
+            text number(points) { at: mx + 246, gy + 20; anchor: left center; size: 13; weight: 700; family: "Monocraft"; color: #3f8a12 }
+            // By itself, or by hand.
+            Slot(mx + 304, gy + 16, 18)
+            box { from: mx + 308, gy + 20; size: 10, 10; color: #3f8a12; opacity: if(auto, 1, 0) }
+            text "auto" { at: mx + 326, gy + 25; anchor: left center; size: 9; weight: 700; family: "Monocraft"; color: lettering }
+
+            // Crafting: the grid, the arrow, and what comes out.
+            group {
+                show: tab == 0
+                // The book's own button.
+                Button(mx + 10, gy + 68, 40, 36, if(pages, #9fd79a, #adadad))
+                image items { at: mx + 14, gy + 70; size: 32, 32; cell: 29, 8, 15 }
+                for g in grid {
+                    Slot(mx + 60 + mod(g.index, 3) * 36, gy + 34 + floor(g.index / 3) * 36)
+                    image items { at: mx + 62 + mod(g.index, 3) * 36, gy + 36 + floor(g.index / 3) * 36; size: 32, 32; cell: g.cell, 8, 15; opacity: if(g.ghost, 0.35, 1); show: g.cell >= 0 }
+                    text number(g.n) { at: mx + 94 + mod(g.index, 3) * 36, gy + 62 + floor(g.index / 3) * 36; anchor: right center; size: 12; weight: 700; family: "Monocraft"; color: ink; outline: 2, #2a2a2a; show: g.n > 1 }
+                }
+                box { from: mx + 180, gy + 82; size: 30, 8; color: slot }
+                path { at: mx + 210, gy + 86; color: slot
+                       move 0, -12
+                       line 16, 0
+                       line 0, 12
+                       close }
+                Slot(mx + 240, gy + 62, 52)
+                image items { at: mx + 250, gy + 72; size: 32, 32; cell: out.cell, 8, 15; show: out.cell >= 0 }
+                text number(out.n) { at: mx + 284, gy + 100; anchor: right center; size: 12; weight: 700; family: "Monocraft"; color: ink; outline: 2, #2a2a2a; show: out.n > 1 }
             }
-            repeat j in 0..3 {
-                box { from: tx + 100 + j * 38, cy + 54; size: 36, 36; color: slot }
-                box { from: tx + 100 + j * 38, cy + 54; size: 36, 2; color: dark }
-                box { from: tx + 100 + j * 38, cy + 54; size: 2, 36; color: dark }
-                box { from: tx + 100 + j * 38, cy + 88; size: 36, 2; color: #ffffff }
-                box { from: tx + 134 + j * 38, cy + 54; size: 2, 36; color: #ffffff }
-                image items { at: tx + 102 + j * 38, cy + 56; size: 32, 32; cell: pick(j, k.s0, k.s1, k.s2), 8, 4
-                              opacity: if(j == 0, 0.3 + 0.7 * k.own, 1); show: pick(j, k.s0, k.s1, k.s2) >= 0 }
+
+            // The furnace: what is smelted above, what burns below, and what comes out.
+            group {
+                show: tab == 1
+                Slot(mx + 96, gy + 34)
+                image items { at: mx + 98, gy + 36; size: 32, 32; cell: fin.cell, 8, 15; show: fin.cell >= 0 }
+                image items { at: mx + 98, gy + 36; size: 32, 32; cell: 30, 8, 15; opacity: 0.25; show: fin.cell < 0 }
+                text number(fin.n) { at: mx + 130, gy + 62; anchor: right center; size: 12; weight: 700; family: "Monocraft"; color: ink; outline: 2, #2a2a2a; show: fin.n > 1 }
+                Slot(mx + 96, gy + 106)
+                image items { at: mx + 98, gy + 108; size: 32, 32; cell: ffuel.cell, 8, 15; show: ffuel.cell >= 0 }
+                image items { at: mx + 98, gy + 108; size: 32, 32; cell: 33, 8, 15; opacity: 0.25; show: ffuel.cell < 0 }
+                text number(ffuel.n) { at: mx + 130, gy + 134; anchor: right center; size: 12; weight: 700; family: "Monocraft"; color: ink; outline: 2, #2a2a2a; show: ffuel.n > 1 }
+                // The fire: as high as what is left of what burns.
+                box { from: mx + 102, gy + 76; size: 24, 24; color: slot }
+                box { from: mx + 102, gy + 100 - 24 * furnace.burn; size: 24, 24 * furnace.burn; color: #ff8a2a }
+                box { from: mx + 108, gy + 100 - 16 * furnace.burn; size: 12, 16 * furnace.burn; color: #ffd166 }
+                // The arrow fills as the thing is smelted.
+                box { from: mx + 150, gy + 82; size: 44, 8; color: slot }
+                box { from: mx + 150, gy + 82; size: 44 * furnace.t, 8; color: #ffffff }
+                path { at: mx + 194, gy + 86; color: if(furnace.t > 0.9, #ffffff, slot)
+                       move 0, -12
+                       line 16, 0
+                       line 0, 12
+                       close }
+                Slot(mx + 214, gy + 62, 52)
+                image items { at: mx + 224, gy + 72; size: 32, 32; cell: fout.cell, 8, 15; show: fout.cell >= 0 }
+                text number(fout.n) { at: mx + 258, gy + 100; anchor: right center; size: 12; weight: 700; family: "Monocraft"; color: ink; outline: 2, #2a2a2a; show: fout.n > 1 }
+                text "It goes on by itself," { at: mx + 16, gy + 20 + 124; anchor: left center; size: 8; weight: 700; family: "Monocraft"; color: #6a6a6a; show: false }
+            }
+
+            // The enchanting table: a thing and its lapis, and what can be put on it for levels.
+            group {
+                show: tab == 2
+                Slot(mx + 22, gy + 60)
+                image items { at: mx + 24, gy + 62; size: 32, 32; cell: eitem.cell, 8, 15; show: eitem.cell >= 0 }
+                box { from: mx + 24, gy + 62; size: 32, 32; color: #c94fd8; opacity: if(eitem.glint, 0.3 + 0.1 * sin(time * 300), 0) }
+                image items { at: mx + 24, gy + 62; size: 32, 32; cell: 10, 8, 15; opacity: 0.2; show: eitem.cell < 0 }
+                Slot(mx + 62, gy + 60)
+                image items { at: mx + 64, gy + 62; size: 32, 32; cell: 34, 8, 15; opacity: if(elapis.cell >= 0, 1, 0.25) }
+                text number(elapis.n) { at: mx + 96, gy + 88; anchor: right center; size: 12; weight: 700; family: "Monocraft"; color: ink; outline: 2, #2a2a2a; show: elapis.n > 1 }
+                for o in offers {
+                    let oy = gy + 34 + o.index * 38
+                    Button(mx + 112, oy, 228, 34, if(o.can, #e9e2f2, #a8a8a8))
+                    text o.name { at: mx + 122, oy + 17; anchor: left center; size: 11; weight: 700; family: "Monocraft"; color: #2c0a5c }
+                    image tiny { at: mx + 296, oy + 9; size: 16, 16; cell: 25, 4, 30 }
+                    text number(o.cost) { at: mx + 330, oy + 17; anchor: right center; size: 13; weight: 700; family: "Monocraft"; color: if(o.can, #3f8a12, #7a1f1f) }
+                }
+                text "A weapon or armour, and lapis" { at: mx + 116, gy + 52; anchor: left center; size: 9; weight: 700; family: "Monocraft"; color: #6a6a6a; show: eitem.cell < 0 }
+                text "Nothing more to put on it" { at: mx + 116, gy + 52; anchor: left center; size: 9; weight: 700; family: "Monocraft"; color: #6a6a6a; show: eitem.done }
+            }
+
+            // What is kept, and under it the bar of nine.
+            for s in slots {
+                let sx = mx + 16 + mod(s.index, 9) * 36
+                let sy = gy + if(s.index < 27, 168 + floor(s.index / 9) * 36, 284)
+                Slot(sx, sy)
+                image items { at: sx + 2, sy + 2; size: 32, 32; cell: s.cell, 8, 15; show: s.cell >= 0 }
+                box { from: sx + 2, sy + 2; size: 32, 32; color: #c94fd8; opacity: 0.28; show: s.glint }
+                text number(s.n) { at: sx + 34, sy + 28; anchor: right center; size: 12; weight: 700; family: "Monocraft"; color: ink; outline: 2, #2a2a2a; show: s.n > 1 }
+            }
+
+            // The party: a weapon, a helmet, a chestplate, boots and a charm each, and a button for its next level.
+            let tx = mx + 356
+            Sheet(tx, gy, 314, 332)
+            for k in cards {
+                let cy = gy + 8 + k.index * 64
+                box { from: tx + 6, cy; size: 302, 62; color: #b4b4b4 }
+                box { from: tx + 6, cy; size: 302, 2; color: dark }
+                box { from: tx + 6, cy; size: 2, 62; color: dark }
+                group {
+                    pivot: tx + 8, cy + 3
+                    scale: 0.56
+                    image heroes { at: tx + 8, cy + 3; size: 104, 104; cell: k.cell, 16, 6; opacity: if(k.down, 0.3, 1) }
+                }
+                text k.name { at: tx + 70, cy + 12; anchor: left center; size: 11; weight: 700; family: "Monocraft"; color: #2a2a2a }
+                box { from: tx + 132, cy + 8; size: 100, 8; color: #3a1512 }
+                box { from: tx + 132, cy + 8; size: 100 * k.hp, 8; color: #e0281e }
+                box { from: tx + 132, cy + 8; size: 100 * k.hp, 2; color: #ff9a9a }
+                text "Lv {k.rank}" { at: tx + 302, cy + 12; anchor: right center; size: 11; weight: 700; family: "Monocraft"; color: #3f8a12 }
+                repeat j in 0..5 {
+                    Slot(tx + 70 + j * 38, cy + 24)
+                    image items { at: tx + 72 + j * 38, cy + 26; size: 32, 32; cell: pick(j, k.s0, k.s1, k.s2, k.s3, k.s4), 8, 15
+                                  opacity: if(j == 0, 0.3 + 0.7 * k.own, 1); show: pick(j, k.s0, k.s1, k.s2, k.s3, k.s4) >= 0 }
+                    box { from: tx + 72 + j * 38, cy + 26; size: 32, 32; color: #c94fd8; opacity: 0.28 * pick(j, k.g0, k.g1, k.g2, k.g3, 0) }
+                }
+                Button(tx + 264, cy + 26, 42, 32, if(k.can, #9fd79a, #adadad))
+                text "+" { at: tx + 276, cy + 42; anchor: center; size: 15; weight: 700; family: "Monocraft"; color: lettering }
+                text number(k.cost) { at: tx + 300, cy + 42; anchor: right center; size: 11; weight: 700; family: "Monocraft"; color: if(k.can, #2a6a0a, #6a6a6a) }
             }
         }
 
-        // The slot the mouse is on, lit; and what the mouse carries, with it.
+        // ── the lands: where the party is, where it can go, and the way to a new world ──
+        group {
+            show: tab == 3
+            Sheet(gx, gy, 968, 332)
+            text "The lands" { at: gx + 16, gy + 22; anchor: left center; size: 13; weight: 700; family: "Monocraft"; color: lettering }
+            text "World {world}" { at: gx + 952, gy + 22; anchor: right center; size: 13; weight: 700; family: "Monocraft"; color: lettering }
+            repeat n in 0..8 {
+                image tiny { at: gx + 840 - n * 16, gy + 14; size: 16, 16; cell: 66, 4, 30; show: n < world - 1 }
+            }
+            for l in lands {
+                let lx = gx + 16 + l.index * 158
+                let ly = gy + 44
+                box { from: lx, ly; size: 150, 204; color: #a8a8a8 }
+                box { from: lx + 3, ly + 3; size: 144, 104; color: pick(l.index, #8fc8f0, #f0d9a0, #5a7a5a, #cfe6f5, #5a1a1a, #1a1030) }
+                box { from: lx + 3, ly + 96; size: 144, 11; color: pick(l.index, #5fa83a, #e3d59a, #4a6b3a, #f2f6f8, #7a2f2f, #e6e8a8) }
+                // Its lord: seen once the way there is open.
+                group {
+                    pivot: lx + 75, ly + 100
+                    scale: 0.5
+                    image boss { at: lx + 75 - 84, ly + 100 - 193; size: 168, 208; cell: l.boss * 8, 16, 3; show: l.open }
+                    image boss { at: lx + 75 - 84, ly + 100 - 193; size: 168, 208; cell: l.boss * 8, 16, 3; tint: #101010; opacity: 0.85; show: not l.open }
+                }
+                image items { at: lx + 59, ly + 36; size: 32, 32; cell: 67, 8, 15; show: not l.open }
+                text l.name { at: lx + 75, ly + 122; anchor: center; size: 11; weight: 700; family: "Monocraft"; color: #2a2a2a }
+                text l.lord { at: lx + 75, ly + 138; anchor: center; size: 8; weight: 700; family: "Monocraft"; color: #5a5a5a }
+                // What is found there, and how often its lord has fallen.
+                image tiny { at: lx + 12, ly + 152; size: 16, 16; cell: l.m0, 4, 30 }
+                image tiny { at: lx + 32, ly + 152; size: 16, 16; cell: l.m1, 4, 30; show: l.m1 >= 0 }
+                image tiny { at: lx + 52, ly + 152; size: 16, 16; cell: l.m2, 4, 30; show: l.m2 >= 0 }
+                image tiny { at: lx + 96, ly + 152; size: 16, 16; cell: 68, 4, 30; opacity: if(l.felled > 0, 1, 0.3) }
+                text number(l.felled) { at: lx + 138, ly + 161; anchor: right center; size: 11; weight: 700; family: "Monocraft"; color: #2a2a2a; show: l.felled > 0 }
+                Button(lx + 8, ly + 176, 134, 22, if(l.here, #ffe27a, if(l.open, #9fd79a, #8b8b8b)))
+                text pick(if(l.here, 0, if(l.open, 1, 2)), "Here", "Go", "Barred") { at: lx + 75, ly + 187; anchor: center; size: 10; weight: 700; family: "Monocraft"; color: lettering }
+                box { from: lx, ly; size: 150, 204; stroke: 3; color: #ffe27a; show: l.here }
+            }
+            Slot(gx + 16, gy + 270, 22)
+            box { from: gx + 21, gy + 275; size: 12, 12; color: #3f8a12; opacity: if(stay, 1, 0) }
+            text "Stay in this land, wave after wave" { at: gx + 46, gy + 281; anchor: left center; size: 10; weight: 700; family: "Monocraft"; color: lettering }
+            text "The lord of the End leaves an Eye. It opens a new world: harder, and a star stronger." { at: gx + 16, gy + 312; anchor: left center; size: 8; weight: 700; family: "Monocraft"; color: #5a5a5a }
+            Button(gx + 700, gy + 258, 252, 60, if(world.can, #c9a8f2, #8b8b8b))
+            image items { at: gx + 712, gy + 272; size: 32, 32; cell: 62, 8, 15; opacity: if(world.can, 1, 0.4) }
+            text "A new world" { at: gx + 756, gy + 288; anchor: left center; size: 13; weight: 700; family: "Monocraft"; color: if(world.can, #2c0a5c, #5a5a5a) }
+        }
+
+        // ── everything that has been met, how many have fallen and what they left ──
+        group {
+            show: tab == 4
+            Sheet(gx, gy, 968, 332)
+            text "Bestiary" { at: gx + 16, gy + 22; anchor: left center; size: 13; weight: 700; family: "Monocraft"; color: lettering }
+            text count { at: gx + 952, gy + 22; anchor: right center; size: 10; weight: 700; family: "Monocraft"; color: #5a5a5a }
+            for b in beasts {
+                let bx = gx + 12 + mod(b.index, 5) * 190
+                let by = gy + 38 + floor(b.index / 5) * 72
+                box { from: bx, by; size: 184, 68; color: if(b.lord, #d9cfa8, #b4b4b4) }
+                box { from: bx, by; size: 184, 2; color: dark }
+                box { from: bx, by; size: 2, 68; color: dark }
+                let veil = if(b.known, if(b.wash > 0, 0.5, 0), 1)
+                group {
+                    pivot: bx + 4, by + 6
+                    scale: 0.58
+                    image foes { at: bx + 4, by + 6; size: 104, 104; cell: b.cell, 16, 6; show: b.sheet == 0 }
+                    image foes { at: bx + 4, by + 6; size: 104, 104; cell: b.cell, 16, 6; tint: if(b.known, pick(b.wash, #1a1a1a, #d9c28a, #9fd6ff, #c4321a, #f09ab0, #a05ad8, #1a1a1a, #ffd24a), #161616); opacity: veil; show: b.sheet == 0 }
+                    image heroes { at: bx + 4, by + 6; size: 104, 104; cell: b.cell, 16, 6; show: b.sheet == 3 }
+                    image heroes { at: bx + 4, by + 6; size: 104, 104; cell: b.cell, 16, 6; tint: if(b.known, #3aa655, #161616); opacity: if(b.known, 0.3, 1); show: b.sheet == 3 }
+                }
+                group {
+                    pivot: bx + 8, by + 4
+                    scale: 0.3
+                    image boss { at: bx + 8, by + 4; size: 168, 208; cell: b.cell, 16, 3; show: b.sheet == 2 }
+                    image boss { at: bx + 8, by + 4; size: 168, 208; cell: b.cell, 16, 3; tint: #161616; opacity: if(b.known, 0, 1); show: b.sheet == 2 }
+                }
+                text b.name { at: bx + 68, by + 13; anchor: left center; size: 9; weight: 700; family: "Monocraft"; color: #2a2a2a }
+                image tiny { at: bx + 68, by + 22; size: 16, 16; cell: 68, 4, 30; opacity: if(b.known, 1, 0.3) }
+                text number(b.kills) { at: bx + 88, by + 31; anchor: left center; size: 10; weight: 700; family: "Monocraft"; color: #2a2a2a; show: b.known }
+                repeat j in 0..4 {
+                    let dc = pick(j, b.d0, b.d1, b.d2, b.d3)
+                    image tiny { at: bx + 68 + j * 20, by + 44; size: 16, 16; cell: dc, 4, 30; show: dc >= 0 }
+                    text "?" { at: bx + 76 + j * 20, by + 52; anchor: center; size: 11; weight: 700; family: "Monocraft"; color: #6a6a6a; show: dc < -1.5 }
+                }
+            }
+        }
+
+        // ── the feats: what there is to have done ──
+        group {
+            show: tab == 5
+            Sheet(gx, gy, 968, 332)
+            text "Feats" { at: gx + 16, gy + 22; anchor: left center; size: 13; weight: 700; family: "Monocraft"; color: lettering }
+            text count { at: gx + 952, gy + 22; anchor: right center; size: 10; weight: 700; family: "Monocraft"; color: #5a5a5a }
+            for a in feats {
+                let ax = gx + 12 + mod(a.index, 3) * 316
+                let ay = gy + 38 + floor(a.index / 3) * 36
+                box { from: ax, ay; size: 310, 34; color: if(a.done, #f2f2f2, #a8a8a8) }
+                box { from: ax, ay; size: 310, 2; color: if(a.done, #ffe27a, dark) }
+                image items { at: ax + 2, ay + 1; size: 32, 32; cell: a.cell, 8, 15; opacity: if(a.done, 1, 0.3) }
+                text a.name { at: ax + 42, ay + 11; anchor: left center; size: 10; weight: 700; family: "Monocraft"; color: if(a.done, #2a2a2a, #4a4a4a) }
+                text a.says { at: ax + 42, ay + 25; anchor: left center; size: 8; weight: 700; family: "Monocraft"; color: #5a5a5a }
+            }
+        }
+
+        // The slot the mouse is on, lit.
         box { from: over.x, over.y; size: 32, 32; color: #ffffff; opacity: if(over.on, 0.45, 0) }
     }
+    // What the mouse carries, with it.
     group {
         show: hand.cell >= 0
-        image items { at: hand.x - 16, hand.y - 16; size: 32, 32; cell: hand.cell, 8, 4 }
+        image items { at: hand.x - 16, hand.y - 16; size: 32, 32; cell: hand.cell, 8, 15 }
+        box { from: hand.x - 16, hand.y - 16; size: 32, 32; color: #c94fd8; opacity: 0.28; show: hand.glint }
         text number(hand.n) { at: hand.x + 16, hand.y + 10; anchor: right center; size: 12; weight: 700; family: "Monocraft"; color: ink; outline: 2, #2a2a2a; show: hand.n > 1 }
     }
     // What the thing under the mouse is called.
     measure named
     group {
-        show: over.on and hand.cell < 0 and named.width > 2
+        opacity: if(tipped and hand.cell < 0, 1, 0)
         box { from: hand.x + 14, hand.y - 30; size: named.width + 14, 24; color: #1b0b1f; opacity: 94% }
         box { from: hand.x + 14, hand.y - 30; size: named.width + 14, 24; stroke: 2; color: #2c0a5c }
         text tip { at: hand.x + 21, hand.y - 18; anchor: left center; size: 12; weight: 700; family: "Monocraft"; color: ink; measure: named }
     }
 
-    // ── a lord, when there is one: its name and how much is left of it ──
+    // ── a lord, when there is one: its name, how much is left of it, and what it is about to do ──
     group {
         opacity: if(king, 1, 0)
         text lord { at: screen.width / 2, 58; anchor: center; size: 15; weight: 700; family: "Monocraft"; color: ink; outline: 2.5, coal }
@@ -475,6 +776,24 @@ scene Guard {
         box { from: screen.width / 2 - 182, 74; size: 364, 8; color: #3d0a4f }
         box { from: screen.width / 2 - 182, 74; size: 364 * king.hp, 8; color: #c53df2 }
         box { from: screen.width / 2 - 182, 74; size: 364 * king.hp, 2; color: #ef9bff }
+        group {
+            show: wind > 0
+            box { at: screen.width / 2, 94; size: 368, 10; color: #1a1a1a }
+            box { from: screen.width / 2 - 182, 91; size: 364 * wind, 6; color: if(sin(time * 900) > 0, #ffd166, #ff8a2a) }
+            text warn { at: screen.width / 2, 114; anchor: center; size: 12; weight: 700; family: "Monocraft"; color: #ffd166; outline: 2.5, coal }
+        }
+        text "Dazed!" { at: screen.width / 2, 100; anchor: center; size: 13; weight: 700; family: "Monocraft"; color: #ffe27a; outline: 2.5, coal; show: king.dazed and wind <= 0 }
+    }
+
+    // ── a feat, when one is reached: in from the right, for a while ──
+    group {
+        opacity: feated
+        move: 340 * (1 - feated), 0
+        box { from: screen.width - 344, 24; size: 320, 64; color: #212121; opacity: 96% }
+        box { from: screen.width - 344, 24; size: 320, 64; stroke: 2; color: #555555 }
+        image items { at: screen.width - 332, 40; size: 32, 32; cell: feat.cell, 8, 15 }
+        text "Feat reached!" { at: screen.width - 288, 44; anchor: left center; size: 12; weight: 700; family: "Monocraft"; color: #ffe27a }
+        text feat { at: screen.width - 288, 66; anchor: left center; size: 12; weight: 700; family: "Monocraft"; color: ink }
     }
 
     text said { at: screen.width / 2, screen.height - 300 - 16 * banner; anchor: center; size: 32; weight: 700; family: "Monocraft"; color: ink; opacity: banner

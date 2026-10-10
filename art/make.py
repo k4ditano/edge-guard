@@ -5,10 +5,11 @@
 Every box is one pixel of texture for each unit of its size, painted here:
 a base colour that varies a little from pixel to pixel, and on top whatever
 the box wants drawn on each of its faces (a face, a collar, planks).
-Characters get 8 frames of walking and 8 of attacking (the boss, 4):
-OUT_DIR/KIND/00.png … What is held is held as it would be: a sword out from
-the fist, a bow across the hand that holds it, its string drawn and let go.
-Heroes look to the right, the rest to the left. Blocks get the frames they say.
+Characters get 8 frames of walking and 8 of attacking (a land's lord, 4, and
+twice as big a picture): OUT_DIR/KIND/00.png … What is held is held as it
+would be: a sword out from the fist, a bow across the hand that holds it, its
+string drawn and let go. Heroes look to the right, the rest to the left.
+Blocks get one picture each: OUT_DIR/blocks/NAME.png.
 """
 import bpy, math, random, sys
 from mathutils import Vector
@@ -176,15 +177,15 @@ def humanoid(c, thin=False, limb=12):
     parts.update(body=body, head=head)
     return parts
 
-def bow(p, y):
+def bow(p, y, wood="#7a4f24"):
     """A bow in the left hand, across it: with the arm out in front it stands
     upright. Its string is two pieces from its tips to where it is drawn to,
     and an arrow lies on it while it is: all three are placed frame by frame."""
     a = p["arm_l"]
     hand = (0, y, 11)
-    box((16, 1, 1.2), (0, y, 11), "#7a4f24", a, paint=on("right", {(7, 0): "#3a2a1a", (8, 0): "#3a2a1a"}))
+    box((16, 1, 1.2), (0, y, 11), wood, a, paint=on("right", {(7, 0): "#3a2a1a", (8, 0): "#3a2a1a"}))
     for side in (-1, 1):
-        box((1.2, 1, 3), (side * 8, y, 12.4), "#7a4f24", a)
+        box((1.2, 1, 3), (side * 8, y, 12.4), wood, a)
         p["tip%d" % side] = joint("tip%d" % side, (side * 8, y, 13.8), a)
     p["grip"] = joint("grip", hand, a)
     # Where the string is drawn to: straight back from the grip, towards whoever holds it.
@@ -365,6 +366,179 @@ def wolf():
         parts[name] = l
     return parts
 
+# ── the two who can be brought to the camp ──
+def golem():
+    iron, dark, light = "#d6d2c8", "#aaa59a", "#eeeae0"
+    worn = lambda seed: both(speckle(dark, 0.14, seed), speckle(light, 0.1, seed + 40))
+    vine = lambda seed: speckle("#5a8a3a", 0.07, seed, ("front", "right", "left", "back"))
+    root = joint("root", (0, 0, 0))
+    parts = dict(root=root)
+    for name, y in (("leg_r", -2.7), ("leg_l", 2.7)):
+        l = joint(name, (0, y, 10), root)
+        box((4.6, 4.8, 10), (0, y, 5), iron, l, paint=both(worn(201), band((0, 1), dark)))
+        parts[name] = l
+    body = joint("body", (0, 0, 10), root)
+    box((5, 8.4, 5), (0, 0, 12.5), iron, body, paint=both(worn(202), band((4,), dark)))
+    chest = rows("...............", "...............", "...R...........", "..RYR.....G....", "...R.....GG....", "...G....GG.....", "...GG..GG......", "....GGGG.......",
+                 "....G..........", "...GG..........", "...............", colours=dict(R="#d83a3a", Y="#ffe27a", G="#5a8a3a"))
+    box((7, 15, 11), (0, 0, 20.5), iron, body, paint=both(worn(203), vine(204), band((0,), dark), on("front", chest)))
+    head = joint("head", (0, 0, 26), body)
+    face = rows("IIIIIII", "IIIIIII", "DDDDDDD", "IRRIRRI", "IIIIIII", "IIIIIII", "IIDDDII", "IIIIIII", colours=dict(I=iron, D="#7d776c", R="#c4281e"))
+    box((6.4, 7, 8), (0.4, 0, 30), iron, head, paint=both(worn(205), on("front", face)))
+    box((2, 2, 4), (4.4, 0, 28.6), "#b8a79a", head)                                     # its nose
+    for name, y in (("arm_r", -9.6), ("arm_l", 9.6)):
+        a = joint(name, (0, y, 24.5), body)
+        box((4, 4, 20), (0, y, 16), iron, a, paint=both(worn(206), vine(207), band((0, 1), dark)))
+        parts[name] = a
+    parts.update(body=body, head=head)
+    return parts
+
+def cleric():
+    skin, robe, dark, white, gold = "#bd8b72", "#6b4a2f", "#4a3320", "#e9e2d0", "#e8c35a"
+    stripe = lambda face, w, h: {(x, y): white for y in range(h) for x in (w // 2 - 1, w // 2)} if face == "front" else {}
+    root = joint("root", (0, 0, 0))
+    parts = dict(root=root)
+    for name, y in (("leg_r", -2), ("leg_l", 2)):
+        l = joint(name, (0, y, 12), root)
+        box((4, 4, 12), (0, y, 6), robe, l, paint=band((0, 1), "#2a1c10"))
+        parts[name] = l
+    box((5, 9, 9.6), (0, 0, 8), robe, root, paint=both(speckle(dark, 0.15, 211), band((0,), gold), stripe))      # the robe, over the legs
+    body = joint("body", (0, 0, 12), root)
+    box((4, 8, 12), (0, 0, 18), robe, body, paint=both(speckle(dark, 0.15, 212), stripe, band((11,), gold)))
+    head = joint("head", (0, 0, 24), body)
+    face = rows("SSSSSSSS", "SSSSSSSS", "SSSSSSSS", "BBBBBBBB", "SWGSSGWS", "SSSSSSSS", "SSSSSSSS", "SSMMMMSS", "SSSSSSSS", "SSSSSSSS",
+                colours=dict(S=skin, B="#3a2a1a", W="#f2f2f2", G="#2f7d4f", M="#8a5a48"))
+    box((8, 8, 10), (0, 0, 29), skin, head, paint=on("front", face))
+    box((2, 2, 4.4), (4.8, 0, 26.6), "#a8745a", head)                                   # the nose they all have
+    box((8.6, 8.6, 2.4), (0, 0, 34.6), white, head, paint=band((0,), gold))             # a cap
+    box((1.2, 8.6, 6), (-3.8, 0, 31), white, head)
+    for name, y in (("arm_r", -6), ("arm_l", 6)):
+        a = joint(name, (0, y, 22), body)
+        box((4, 4, 11), (0, y, 18.5), robe, a, paint=both(band((0, 1), skin), band((2,), gold)))
+        parts[name] = a
+    # Folded, the hands are inside one sleeve; to heal, one of them comes out with something golden in it.
+    parts["muff"] = joint("muff", (5.6, 0, 15.6), body)
+    box((4.4, 9.6, 4.4), (5.6, 0, 15.6), robe, parts["muff"], paint=band((0,), dark))
+    parts["charm"] = joint("charm", (0, -6, 11.5), parts["arm_r"])
+    box((2.6, 2.6, 2.6), (0, -6, 11), "#ffd23a", parts["charm"], paint=speckle("#fff7c9", 0.3, 213), rough=0)
+    box((1, 1, 1), (0, -6, 9.2), "#fff7c9", parts["charm"], rough=0)
+    for dx, dy in ((2.4, 0), (-2.4, 0), (0, 2.4), (0, -2.4)):
+        box((0.8, 0.8, 0.8), (dx, -6 + dy, 11), "#fff2a0", parts["charm"], rough=0)
+    parts.update(body=body, head=head)
+    return parts
+
+# ── the lords of the other lands ──
+def husk():
+    sand, dark, wrap, cloth = "#c9b182", "#9a8458", "#ece3c8", "#6b5236"
+    sides = ("front", "back", "right", "left")
+    face = rows("SSSSSSSS", "SSSSSSSS", "WWWWWWWW", "SDSSSSDS", "SYYSSYYS", "SSSDDSSS", "SDKKKKDS", "SSDDDDSS",
+                colours=dict(S=sand, D=dark, K="#1a140c", W=wrap, Y="#ffb01e"))
+    torn = lambda seed: speckle(sand, 0.16, seed, sides)
+    p = humanoid(dict(skin=sand, face=face, head_paint=both(speckle(dark, 0.2, 221), band((5,), wrap, ("back", "right", "left"))),
+                      shirt=cloth, shirt_paint=both(torn(222), band((0,), "#4a3824"), band((4, 8), wrap)),
+                      sleeve=sand, arm_paint=both(speckle(dark, 0.2, 223), band((2, 3, 7), wrap), band((10, 11), cloth)),
+                      pants="#57452f", leg_paint=both(band((0, 1), "#3a2d1e"), band((5, 8), wrap), torn(224))))
+    h = p["head"]
+    # Its crown: a band, one tall point over the brow, and the cloth of a king of the sands down each side.
+    box((9, 9, 1.8), (0, 0, 32.7), "#e8c35a", h, paint=both(speckle("#fff0a0", 0.2, 225), on("front", {(4, 0): "#1fd0c0", (4, 1): "#1fd0c0"})))
+    box((1.8, 2.2, 5), (3.6, 0, 35.6), "#e8c35a", h, paint=on("front", {(0, 3): "#1fd0c0", (1, 3): "#1fd0c0"}))
+    box((1.6, 1.6, 2.2), (3.6, -3.4, 34.4), "#e8c35a", h)
+    box((1.6, 1.6, 2.2), (3.6, 3.4, 34.4), "#e8c35a", h)
+    stripes = lambda face, w, hh: {(x, y): "#2f6fb0" for y in range(0, hh, 2) for x in range(w)}
+    for y in (-4.9, 4.9):
+        box((6, 1.2, 9), (-0.6, y, 27.6), "#e8c35a", h, paint=stripes)
+    box((5, 9, 4), (0, 0, 21.5), "#4a3824", p["body"], paint=band((0,), "#e8c35a"))
+    return p
+
+def great_slime():
+    root = joint("root", (0, 0, 0))
+    body = joint("body", (0, 0, 0), root)
+    def core(face, w, h):          # what is seen through it: a darker one inside
+        return {(x, y): "#4f9a40" for y in range(5, 15) for x in range(5, 15)} if face not in ("top", "bottom") else {}
+    face = rows("....................", "....................", "....................", "....................", "....................",
+                "..KKKK........KKKK..", "...KKKK......KKKK...", "...KWKK......KKWK...", "...KKKK......KKKK...", "....................",
+                "....................", "....................", ".....KKKKKKKKKK.....", ".....KWKWKKWKWK.....", "......KKKKKKKK......",
+                "....................", "....................", "....................", "....................", "....................", colours=dict(K="#173312", W="#e4ffd6"))
+    box((20, 20, 20), (0, 0, 10), "#74c75e", body, paint=both(speckle("#93dc7c", 0.22, 231), speckle("#5cae4a", 0.18, 232), core, speckle("#3f8a34", 0.12, 233, ("front", "back", "right", "left")), on("front", face)), rough=0.05)
+    # A crown, as the lord of the swamp it is.
+    box((10, 10, 2), (0, 0, 21), "#e8c35a", body, paint=both(speckle("#fff0a0", 0.2, 234), on("front", {(4, 0): "#d83a3a", (5, 0): "#d83a3a"})))
+    for x, y, tall in ((4, -4, 3), (4, 4, 3), (-4, -4, 3), (-4, 4, 3), (4, 0, 5)):
+        box((2, 2, tall), (x, y, 22 + tall / 2), "#e8c35a", body, paint=on("front", {(0, tall - 2): "#d83a3a", (1, tall - 2): "#d83a3a"}), rough=0.04)
+    return dict(root=root, body=body)
+
+def frost_archer():
+    bone, dark, cloth, shade_ = "#c4d2da", "#7d8c96", "#5f7384", "#44566a"
+    skull = rows("WWWWWWWW", "WWWWWWWW", "WWWWWWWW", "WKKWWKKW", "WBBWWBBW", "WWWKKWWW", "WKWKWKWW", "WWWWWWWW", colours=dict(W=bone, K="#2a3038", B="#7fe0ff"))
+    ribs = on("front", rows("BBBBBBBB", "DBBDDBBD", "BBBBBBBB", "DBBDDBBD", "BBBBBBBB", "DBBDDBBD", "BBBDDBBB", "BBBDDBBB", "BBBDDBBB", "BBBBBBBB", "DDBBBBDD", "BBBBBBBB", colours=dict(B=bone, D="#3f4a54")))
+    p = humanoid(dict(skin=bone, face=skull, head_paint=speckle(dark, 0.08, 241), shirt=bone, shirt_paint=ribs, sleeve=bone, arm_paint=both(speckle(dark, 0.15, 242), band((9, 10, 11), cloth)),
+                      pants=bone, leg_paint=both(speckle(dark, 0.15, 243), band((8, 9, 10, 11), cloth))), thin=True)
+    h = p["head"]
+    rag = lambda seed: speckle(shade_, 0.3, seed)
+    # The hood: over the skull, open at the face, and frost on its top.
+    box((9, 9, 3), (-0.3, 0, 30.9), cloth, h, paint=rag(244))
+    box((1.6, 9, 7.4), (-4, 0, 26.4), cloth, h, paint=rag(245))
+    box((7.4, 1, 6.6), (-0.5, -4.2, 26.9), cloth, h, paint=rag(246))
+    box((7.4, 1, 6.6), (-0.5, 4.2, 26.9), cloth, h, paint=rag(247))
+    for x, y, tall in ((2.4, -2.4, 3), (0, 0.6, 4.4), (-2.2, 2.6, 2.6), (1.6, 2.8, 2)):
+        box((1.4, 1.4, tall), (x, y, 32.4 + tall / 2), "#bfeaff", h, paint=speckle("#ffffff", 0.3, 248), rough=0.03)
+    # Rags: what is left of a coat over the ribs, and strips of it down the back and the legs.
+    box((2.8, 8.6, 5), (0, 0, 21.2), cloth, p["body"], paint=both(rag(249), band((0,), shade_)))
+    for y, tall in ((-2.6, 13), (0, 9), (2.6, 15)):
+        box((0.8, 2.4, tall), (-1.7, y, 23.8 - tall / 2), cloth, p["body"], paint=rag(250))
+    for y, tall in ((-1.8, 6), (1.8, 4)):
+        box((2.6, 2.6, tall), (0, y, 12.6 - tall / 2), cloth, p["root"], paint=rag(251))
+    bow(p, 5, "#8ac4ee")
+    return p
+
+def magma_titan():
+    crust, deep = "#2e0d0a", "#1a0605"
+    root = joint("root", (0, 0, 0))
+    body = joint("body", (0, 0, 0), root)
+    parts = dict(root=root, body=body)
+    # What burns inside is seen between its layers when they come apart.
+    parts["core"] = joint("core", (0, 0, 10), body)
+    box((16, 16, 16), (0, 0, 10), "#ff8a1e", parts["core"], paint=both(speckle("#ffd23a", 0.35, 261), speckle("#e0501a", 0.2, 262)), rough=0.1)
+    eye = lambda rows_: {(x, y): c for y, c in rows_ for x in (2, 3, 4, 5, 14, 15, 16, 17)}
+    for k in range(4):
+        l = joint("layer%d" % k, (0, 0, k * 5), body)
+        paint = [speckle("#4a1a12", 0.25, 263 + k), speckle(deep, 0.2, 270 + k), band((0,), "#c4401a"), band((4,), "#7a2010")]
+        if k == 3:
+            paint.append(on("front", {**eye(((0, "#ffb01e"), (1, "#ffd23a"), (2, "#ffb01e"))), (3, 1): "#fff7c9", (16, 1): "#fff7c9"}))
+        if k == 2:
+            paint.append(on("front", eye(((4, "#e03a1a"), (3, "#ff7a1e")))))
+        box((20, 20, 5), (0, 0, k * 5 + 2.5), crust, l, paint=both(*paint), rough=0.08)
+        parts["layer%d" % k] = l
+    return parts
+
+def ender_giant():
+    black = "#141416"
+    hide = lambda seed: both(speckle("#2a2033", 0.22, seed), speckle("#b84ff0", 0.035, seed + 30))
+    root = joint("root", (0, 0, 0))
+    parts = dict(root=root)
+    for name, y in (("leg_r", -3), ("leg_l", 3)):
+        l = joint(name, (0, y, 26), root)
+        box((4, 4, 26), (0, y, 13), black, l, paint=hide(281))
+        parts[name] = l
+    body = joint("body", (0, 0, 26), root)
+    gem = rows("..........", "..........", "....PP....", "...PMMP...", "...PMMP...", "....PP....", colours=dict(P="#e079fa", M="#ffffff"))
+    box((6, 12, 13), (0, 0, 32.5), black, body, paint=both(hide(282), on("front", {(x + 1, y + 3): c for (x, y), c in gem.items()})))
+    head = joint("head", (0, 0, 39), body)
+    face = rows("KKKKKKKKK", "KKKKKKKKK", "KKKKKKKKK", "PPPKKKPPP", "PMPKKKPMP", "KKKKKKKKK", "KKKKKKKKK", "KKPPPPPKK", "KKKKKKKKK", colours=dict(K=black, P="#e079fa", M="#ffffff"))
+    box((9, 9, 9), (0, 0, 43.5), black, head, paint=both(hide(283), on("front", face)))
+    # The crown of the End's lord: crystals, and a horn each side.
+    for x, y, tall, c in ((3, -3, 4, "#b84ff0"), (3, 0, 6, "#e079fa"), (3, 3, 4, "#b84ff0"), (-3, -3, 3, "#7a2fb0"), (-3, 3, 3, "#7a2fb0"), (0, -3.4, 3.4, "#9a3fd0"), (0, 3.4, 3.4, "#9a3fd0"), (-3, 0, 4.6, "#b84ff0")):
+        box((1.8, 1.8, tall), (x, y, 48 + tall / 2), c, head, paint=speckle("#f2c9ff", 0.25, 284), rough=0.04)
+    for side in (-1, 1):
+        horn = joint("horn%d" % side, (0, side * 4.5, 45), head)
+        box((2, 2, 10), (0, side * 4.5, 50), "#5a3f7a", horn, paint=band((7, 8, 9), "#f2c9ff"))
+        horn.rotation_euler.x = math.radians(-52 * side)
+    for name, y in (("arm_r", -8), ("arm_l", 8)):
+        a = joint(name, (0, y, 37), body)
+        box((4, 4, 30), (0, y, 23.5), black, a, paint=both(hide(285), band((0, 1), "#5a3f7a")))
+        parts[name] = a
+    parts.update(body=body, head=head)
+    return parts
+
 # ── blocks, sixteen a side ──
 def planks(light="#b8945f", dark="#7a5c34"):
     def paint(face, w, h):
@@ -437,13 +611,122 @@ def tnt(lit=False):
     box((16, 16, 16), (0, 0, 8), red, root, paint=paint, rough=0.04)
     return dict(root=root)
 
+
+def cobble(seed, edge="#5f5f5f"):
+    def paint(face, w, h):
+        rnd = random.Random(seed + FACES.index(face))
+        out = {}
+        for y in range(h):
+            for x in range(w):
+                k = rnd.random()
+                if x in (0, w - 1) or y in (0, h - 1): out[(x, y)] = edge
+                elif (x + (y // 4) * 3) % 6 == 0 or y % 4 == 0: out[(x, y)] = "#6a6a6a" if k < 0.7 else "#7a7a7a"
+                elif k < 0.12: out[(x, y)] = "#a4a4a4"
+        return out
+    return paint
+
+def furnace(lit=False):
+    root = joint("root", (0, 0, 0))
+    def mouth(face, w, h):
+        if face != "right":
+            return {}
+        out = {(x, y): "#4a4a4a" for x in range(2, 14) for y in range(1, 9)}
+        out.update({(x, y): "#141414" for x in range(3, 13) for y in range(2, 8)})
+        out.update({(x, y): "#4a4a4a" for x in range(3, 13) for y in range(10, 14)})
+        out.update({(x, y): "#1a1a1a" for x in range(4, 12) for y in range(11, 13)})
+        if lit:
+            flame = rows("..Y....Y..", ".YY.Y.YYY.", "YFYYFYYFYY", "FFYFFFYFFF", "FRFFRFFFRF", "RRRRRRRRRR", colours=dict(Y="#ffe27a", F="#ff9a1e", R="#e0501a"))
+            out.update({(x + 3, y + 2): c for (x, y), c in flame.items()})
+            out.update({(x, y): "#7a3a1a" for x in range(4, 12) for y in range(11, 13)})
+        return out
+    box((16, 16, 16), (0, 0, 8), "#8a8a8a", root, paint=both(cobble(301), mouth), rough=0.05)
+    return dict(root=root)
+
+def enchant():
+    root = joint("root", (0, 0, 0))
+    def paint(face, w, h):
+        if face == "top":
+            out = {(x, y): "#8a1f2a" for y in range(h) for x in range(w)}
+            out.update({(x, y): "#4ee6d6" for x in (0, 1, 2, w - 3, w - 2, w - 1) for y in (0, 1, 2, h - 3, h - 2, h - 1)})
+            out.update({(x, y): "#c9a24a" for x in range(5, 11) for y in (5, 10)})
+            out.update({(x, y): "#c9a24a" for x in (5, 10) for y in range(5, 11)})
+            return out
+        if face == "bottom":
+            return {}
+        out = {(x, y): "#8a1f2a" for x in range(w) for y in range(h - 3, h)}
+        out.update({(x, y): "#4ee6d6" for x in (0, 1, w - 2, w - 1) for y in range(h - 3, h)})
+        out.update({(x, y): "#a8fff2" for x in (0, w - 1) for y in (h - 1,)})
+        return out
+    box((16, 16, 12), (0, 0, 6), "#1a1326", root, paint=both(speckle("#2f2444", 0.3, 311), speckle("#0f0a18", 0.2, 312), paint), rough=0.06)
+    # The book that floats over it, open.
+    book = joint("book", (0, 0, 16.4), root)
+    box((6, 9, 0.8), (0, 0, 16), "#7a4f24", book, rough=0.04)
+    for side in (-1, 1):
+        page = joint("page%d" % side, (0, 0, 16.4), book)
+        box((5.2, 4, 0.9), (0, side * 2.1, 16.9), "#f2ecd8", page, paint=lambda face, w, h: {(x, y): "#8a7a9a" for y in (1, 3) for x in range(1, w - 1)} if face == "top" else {}, rough=0.02)
+        page.rotation_euler.x = math.radians(16 * side)
+    book.rotation_euler = (0, math.radians(34), math.radians(-50))      # tilted towards whoever looks
+    return dict(root=root)
+
+def mine():
+    root = joint("root", (0, 0, 0))
+    ORES = ("#262626", "#262626", "#d9a878", "#d9a878", "#f2cf4a", "#4ee6d6")
+    def ores(face, w, h):
+        rnd = random.Random(321 + FACES.index(face))
+        out = {}
+        for k in range(7 if face != "right" else 4):
+            c = ORES[k % len(ORES)]
+            x, y = rnd.randint(1, w - 3), rnd.randint(1, h - 3)
+            for dx, dy in ((0, 0), (1, 0), (0, 1), (1, 1) if rnd.random() < 0.5 else (0, 0)):
+                out[(x + dx, y + dy)] = c
+        return out
+    def tunnel(face, w, h):
+        if face != "right":
+            return {}
+        out = {(x, y): "#0f0c0a" for x in range(4, 12) for y in range(0, 11)}
+        out.update({(x, y): "#241c16" for x in range(5, 11) for y in range(0, 3)})
+        out.update({(x, y): "#7a552a" for x in (3, 12) for y in range(0, 12)})
+        out.update({(x, y): "#8a6233" for x in range(2, 14) for y in (11, 12)})
+        out.update({(x, 0): "#8f979e" for x in (5, 10)})                       # rails, going in
+        out.update({(x, 1): "#8f979e" for x in (6, 9)})
+        return out
+    box((16, 16, 16), (0, 0, 8), "#8a8a8a", root, paint=both(cobble(322), ores, tunnel), rough=0.05)
+    return dict(root=root)
+
+def farm(stage):
+    root = joint("root", (0, 0, 0))
+    def soil(face, w, h):
+        if face == "top":
+            return {(x, y): "#4a3020" if x % 4 in (1, 2) else "#6b4628" for y in range(h) for x in range(w)}
+        return {(x, 0): "#3a2616" for x in range(w)}
+    box((16, 16, 7), (0, 0, 3.5), "#5a3d24", root, paint=both(speckle("#6b4a2c", 0.2, 331), speckle("#46301c", 0.2, 332), soil), rough=0.08)
+    rnd = random.Random(333)
+    tall, colour, tip = ((1.6, "#7fd070", None), (4.5, "#5fa83a", "#8fd67a"), (8.5, "#5fa83a", "#a6c84a"), (9.5, "#d9b03a", "#f7e08a"))[stage]
+    for x in (-6, -2, 2, 6):
+        for y in (-6, -2, 2, 6):
+            t = tall * (0.82 + rnd.random() * 0.36)
+            box((1.1, 1.1, t), (x, y, 7 + t / 2), colour, root, rough=0.1)
+            if tip:
+                box((1.8, 1.8, 2.6 if stage == 3 else 1.4), (x, y, 7 + t + 0.6), tip, root, rough=0.08)
+    return dict(root=root)
+
 KINDS = {
     "knight": (knight, "hero"), "archer": (archer, "hero"), "mage": (mage, "hero"), "wolf": (wolf, "hero"),
+    "golem": (golem, "hero"), "cleric": (cleric, "hero"),
     "zombie": (zombie, "foe"), "skeleton": (skeleton, "foe"), "creeper": (creeper, "foe"),
     "spider": (spider, "foe"), "enderman": (enderman, "foe"), "slime": (slime, "foe"),
     "boss": (lambda: zombie(boss=True), "foe"),
+    "husk": (husk, "foe"), "great_slime": (great_slime, "foe"), "frost_archer": (frost_archer, "foe"),
+    "magma_titan": (magma_titan, "foe"), "ender_giant": (ender_giant, "foe"),
 }
-BLOCKS = {"grass": grass, "table": table, "tnt": tnt, "tnt_lit": lambda: tnt(True)}
+# The lords: four frames of striking, and a picture twice the size.
+LORDS = ("boss", "husk", "great_slime", "frost_archer", "magma_titan", "ender_giant")
+# Who moves as who.
+POSE_AS = {"husk": "boss", "great_slime": "slime", "frost_archer": "skeleton"}
+BLOCKS = {"grass": grass, "table": table, "tnt": tnt, "tnt_lit": lambda: tnt(True),
+          "furnace": furnace, "furnace_lit": lambda: furnace(True), "enchant": enchant, "mine": mine}
+for _stage in range(4):
+    BLOCKS["farm_%d" % _stage] = (lambda s: lambda: farm(s))(_stage)
 for _kind in CHESTS:
     BLOCKS["chest_" + _kind] = (lambda k: lambda: chest(k))(_kind)
     BLOCKS["chest_" + _kind + "_open"] = (lambda k: lambda: chest(k, True))(_kind)
@@ -466,6 +749,7 @@ def along(values, hit):
 
 def pose(kind, p, frame, strikes=8):
     """Frames 0–7 walk; the rest strike."""
+    kind = POSE_AS.get(kind, kind)
     rest(p)
     walking = frame < 8
     t = (frame % 8) / 8 * math.tau
@@ -475,8 +759,8 @@ def pose(kind, p, frame, strikes=8):
     swing = math.sin(hit * math.pi)
     # (A lunge goes the way it faces.)
     ahead = -1 if "turn" in p["root"].keys() else 1
-    if kind in ("knight", "archer", "mage", "zombie", "skeleton", "boss", "enderman"):
-        stride = {"boss": 26, "enderman": 22}.get(kind, 34)
+    if kind in ("knight", "archer", "mage", "zombie", "skeleton", "boss", "enderman", "ender_giant", "golem", "cleric"):
+        stride = {"boss": 26, "enderman": 22, "ender_giant": 20, "golem": 22, "cleric": 24}.get(kind, 34)
         if walking:
             p["leg_r"].rotation_euler.y = r(stride * s)
             p["leg_l"].rotation_euler.y = r(-stride * s)
@@ -494,6 +778,36 @@ def pose(kind, p, frame, strikes=8):
             p["arm_r"].rotation_euler.y = r(-10 * s if walking else along((0, -60, -150, -170, -60, -20, -10, 0), hit))
             p["arm_l"].rotation_euler.y = r(10 * s if walking else along((0, -40, -130, -165, -70, -25, -10, 0), hit))
             p["body"].rotation_euler.y = r(0 if walking else along((0, -4, -8, -8, 12, 10, 4, 0), hit))
+        elif kind == "ender_giant":
+            # Both arms up and forward, and down on whoever is there: not as high as its head.
+            p["arm_r"].rotation_euler.y = r(-8 * s if walking else along((0, -50, -118, -126, -60, -20, -10, 0), hit))
+            p["arm_l"].rotation_euler.y = r(8 * s if walking else along((0, -36, -104, -120, -66, -24, -10, 0), hit))
+            p["body"].rotation_euler.y = r(0 if walking else along((0, -4, -8, -8, 12, 10, 4, 0), hit))
+        elif kind == "golem":
+            p["root"].location.z = 0.5 * bob
+            if walking:
+                p["arm_r"].rotation_euler.y = r(-9 * s)
+                p["arm_l"].rotation_euler.y = r(9 * s)
+                p["body"].rotation_euler.x = r(2.5 * s)
+            else:
+                # Both arms back and up, and down hard on what is in front.
+                p["arm_r"].rotation_euler.y = r(along((0, -60, -118, -128, -74, -44, -38, -10), hit))
+                p["arm_l"].rotation_euler.y = r(along((0, -52, -110, -124, -78, -46, -38, -10), hit))
+                p["body"].rotation_euler.y = r(along((0, -4, -8, -10, 6, 14, 10, 2), hit))
+                p["root"].location.x = along((0, -0.5, -1, -1, 1, 2, 1.5, 0), hit)
+        elif kind == "cleric":
+            p["arm_l"].rotation_euler.y = r(-56)
+            p["charm"].scale = (0, 0, 0)
+            if walking:
+                p["arm_r"].rotation_euler.y = r(-56)
+            else:
+                # One hand out of the sleeve and up, with what heals in it.
+                p["muff"].scale = (0, 0, 0)
+                p["charm"].scale = (1, 1, 1) if 1 <= frame - 8 <= 6 else (0, 0, 0)
+                p["arm_r"].rotation_euler.y = r(along((-56, -96, -132, -148, -148, -144, -110, -56), hit))
+                p["arm_l"].rotation_euler.y = r(along((-56, -40, -24, -20, -20, -24, -40, -56), hit))
+                p["body"].rotation_euler.y = r(along((0, -3, -6, -8, -8, -6, -3, 0), hit))
+                p["head"].rotation_euler.y = r(along((0, -4, -10, -14, -14, -10, -4, 0), hit))
         elif kind == "knight":
             p["arm_l"].rotation_euler.y = r(6 * s - 30)
             if walking:
@@ -518,7 +832,7 @@ def pose(kind, p, frame, strikes=8):
                 p["body"].rotation_euler.z = r(along((0, 8, 14, 14, 14, 14, 12, 4), hit))
                 p["head"].rotation_euler.z = r(-along((0, 8, 14, 14, 14, 14, 12, 4), hit))
                 step = frame - 8
-                string(p, (None, 0, 2, 4.5, 6.5, 7, None, None)[min(step, 7)] if strikes == 8 else None)
+                string(p, (None, 0, 2, 4.5, 6.5, 7, None, None)[min(step, 7)] if strikes == 8 else (None, 3, 7, None)[min(step, 3)])
         elif kind == "mage":
             p["arm_l"].rotation_euler.y = r(14 * s)
             if walking:
@@ -562,6 +876,20 @@ def pose(kind, p, frame, strikes=8):
             p["root"].location.z = 4 * swing
             squash = 1 - 0.18 * math.sin(hit * math.tau)
             p["body"].scale = (1 + (1 - squash) * 0.6, 1 + (1 - squash) * 0.6, squash)
+    elif kind == "magma_titan":
+        # It hops as a slime does, and its layers come apart as it goes up.
+        up = max(0.0, math.sin(t)) if walking else swing
+        gap = 1.5 * up
+        for k in range(4):
+            p["layer%d" % k].location.z = k * 5 + k * gap
+        p["core"].scale = (1, 1, 1 + gap * 3 / 16)
+        if walking:
+            squash = 1 - 0.16 * max(0.0, -math.sin(t))
+            p["body"].scale = (1 + (1 - squash) * 0.6, 1 + (1 - squash) * 0.6, squash)
+            p["root"].location.z = 8 * up
+        else:
+            p["root"].location.x = 5 * swing * ahead
+            p["root"].location.z = 3 * swing
     elif kind == "spider":
         for name, l in p.items():
             if not name.startswith("leg_"):
@@ -619,17 +947,19 @@ def clear():
         if o is not cam:
             bpy.data.objects.remove(o, do_unlink=True)
 
-SCALE = {"spider": 40, "mage": 50, "boss": 46, "enderman": 62, "wolf": 40, "slime": 40}
-AIM = {"spider": 12, "mage": 21, "boss": 18.5, "enderman": 26, "wolf": 14, "slime": 13}
+SCALE = {"spider": 40, "mage": 50, "boss": 46, "enderman": 62, "wolf": 40, "slime": 40,
+         "golem": 52, "cleric": 46, "husk": 50, "great_slime": 47, "frost_archer": 48, "magma_titan": 47, "ender_giant": 68}
+AIM = {"spider": 12, "mage": 21, "boss": 18.5, "enderman": 26, "wolf": 14, "slime": 13,
+       "golem": 19, "cleric": 19, "husk": 20, "great_slime": 17.2, "frost_archer": 19, "magma_titan": 16.2, "ender_giant": 28}
 for kind, (build, team) in KINDS.items():
     if ONLY and kind not in ONLY:
         continue
     parts = build()
     if team == "foe":
         parts["root"]["turn"] = math.pi             # the rest come from the right
-    r_.resolution_x = r_.resolution_y = 512 if kind == "boss" else 256
+    r_.resolution_x = r_.resolution_y = 512 if kind in LORDS else 256
     look(1 if team == "hero" else -1, SCALE.get(kind, 44), AIM.get(kind, 18))
-    strikes = 4 if kind == "boss" else 8
+    strikes = 4 if kind in LORDS else 8
     for frame in range(8 + strikes):
         pose(kind, parts, frame, strikes)
         r_.filepath = "%s/%s/%02d.png" % (OUT, kind, frame)
