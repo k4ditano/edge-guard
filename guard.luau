@@ -27,7 +27,8 @@ G.world, G.land, G.step, G.reached, G.stay = 1, 0, 0, 0, false
 -- Experience: what is gathered towards the next level, the levels not yet spent, and all those earnt in this world.
 G.xp, G.points, G.earned = 0, 0, 0
 G.kills, G.lords, G.seen, G.feats, G.recruited = {}, { 0, 0, 0, 0, 0, 0 }, {}, {}, {}
-G.stats = { felled = 0, harvests = 0, catches = 0 }
+G.stats = { felled = 0, harvests = 0, catches = 0, trades = 0 }
+G.ui_clock = 0                   -- seconds the game has been shown, stopped or not: for a double press
 G.stage, G.stage_in, G.spawn_in, G.smite_in, G.storm, G.clock, G.gone_in = "start", 0, 0, 0, 0, 0, 0   -- start · fight · rest · fallen
 -- What the hand is at: the table open and on which page, a thing chosen on the bar, a hero being carried.
 G.open, G.tab, G.pages, G.armed, G.carried, G.auto, G.quiet = false, 0, true, nil, nil, false, false
@@ -55,11 +56,11 @@ function G.save_soon() save_in = math.min(save_in, 1) end
 
 -- Who can be of the party: the three it starts with, and the two that join.
 local ROSTER = {
-    knight = { name = "knight", shown = "Knight", row = 0, post = 840, base_max = 140, base_dmg = 10, every = 0.9, range = 80,   strike = 0.44, lands = 0.55, rest = "wood_sword", sweep = 4, push = 240 },
-    archer = { name = "archer", shown = "Archer", row = 1, post = 730, base_max = 70,  base_dmg = 8,  every = 1.2, range = 1250, strike = 0.62, lands = 0.75, rest = "bow" },
-    witch  = { name = "witch",  shown = "Witch",  row = 2, post = 650, base_max = 60,  base_dmg = 14, every = 2.8, range = 840,  strike = 0.6,  lands = 0.5,  rest = "potion", splash = 90 },
-    golem  = { name = "golem",  shown = "Golem",  row = 4, post = 940, base_max = 260, base_dmg = 16, every = 1.7, range = 96,   strike = 0.6,  lands = 0.5,  sweep = 3, push = 420, size = 1.3 },
-    cleric = { name = "cleric", shown = "Cleric", row = 5, post = 580, base_max = 55,  base_dmg = 0,  every = 3.0, range = 0,    strike = 0.7,  lands = 0.5,  heals = true, base_heal = 16 },
+    knight = { name = "knight", shown = "Knight", row = 0, post = 870, base_max = 140, base_dmg = 10, every = 0.9, range = 80,   strike = 0.44, lands = 0.55, rest = "wood_sword", sweep = 4, push = 240 },
+    archer = { name = "archer", shown = "Archer", row = 1, post = 780, base_max = 70,  base_dmg = 8,  every = 1.2, range = 1250, strike = 0.62, lands = 0.75, rest = "bow" },
+    witch  = { name = "witch",  shown = "Witch",  row = 2, post = 700, base_max = 60,  base_dmg = 14, every = 2.8, range = 840,  strike = 0.6,  lands = 0.5,  rest = "potion", splash = 90 },
+    golem  = { name = "golem",  shown = "Golem",  row = 4, post = 960, base_max = 260, base_dmg = 16, every = 1.7, range = 96,   strike = 0.6,  lands = 0.5,  sweep = 3, push = 420, size = 1.3 },
+    cleric = { name = "cleric", shown = "Cleric", row = 5, post = 630, base_max = 55,  base_dmg = 0,  every = 3.0, range = 0,    strike = 0.7,  lands = 0.5,  heals = true, base_heal = 16 },
 }
 local by_name = {}
 function G.enlist(name)
@@ -78,7 +79,10 @@ require("logic/data")(G)
 require("logic/camp")(G)
 require("logic/field")(G)
 require("logic/book")(G)
+require("logic/trade")(G)
+require("logic/sky")(G)
 G.refit()
+G.stock()
 
 -- ── what was saved ──
 local function packed(p) return p and { p.id, p.n, p.e or {} } or { "", 0 } end
@@ -122,6 +126,7 @@ local function save()
         furnace = { input = packed(f.input), fuel = packed(f.fuel), out = packed(f.out), burn = f.burn },
         mine = { level = G.mine.level, stock = pairs_of(G.mine.stock) }, farm = { G.farm[1], G.farm[2] }, seed = G.bench.seed,
         kills = pairs_of(G.kills), lords = G.lords, seen = seen, feats = feats, stats = pairs_of(G.stats),
+        trades = G.trades_saved(),
     })
 end
 
@@ -215,6 +220,8 @@ do
             if G.stats[one[1]] then G.stats[one[1]] = num(one[2], 0) end
         end
         G.refit()
+        G.stock()
+        G.trades_back(kept.trades)
         for _, h in G.heroes do h.hp = h.max end
         for _ = 1, math.clamp(num(kept.wolves, 0), 0, 3) do G.tame() end
         for _, w in G.wolves do w.x = w.post end
@@ -254,6 +261,7 @@ end)
 on("frame", function(dt)
     -- Put away: nothing is worked out, and nothing is told to a scene that shows none of it.
     if away then return end
+    G.ui_clock += dt
     G.show_camp()
     G.show_book(dt)
     -- Stopped: nothing moves.

@@ -5,7 +5,7 @@
 #   ./play.sh DP-1       on that one (their names: `wlr-randr`, `hyprctl monitors`…)
 #   ./play.sh stop       closes it
 #
-# It needs pleamar 0.3.0 or newer (https://github.com/k4ditano/pleamar) and a
+# It needs pleamar 0.4.10 or newer (https://github.com/k4ditano/pleamar) and a
 # Wayland compositor with layer-shell. The first time, it puts the game's font
 # (Monocraft, fonts/OFL.txt) in ~/.local/share/fonts.
 here=$(dirname "$(readlink -f "$0")")

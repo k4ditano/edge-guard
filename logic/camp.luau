@@ -7,7 +7,8 @@ return function(G)
     local inv, grid = G.inv, G.grid
     -- Where the mine and the two plots of wheat are, along the edge.
     local MINE_X, FARM_X = 367, { 439, 501 }
-    G.CAMP_END = 560
+    -- (The trader keeps his stall just past the wheat.)
+    G.CAMP_END, G.TRADER_X = 620, 572
 
     local function glint(p) return p ~= nil and p.e ~= nil and next(p.e) ~= nil end
     function G.describe(p)
@@ -437,67 +438,90 @@ return function(G)
     end
 
     -- ── where everything of the table is ──
-    local FULL = 298 + 352 + 4 + 314
+    -- (The scene draws it with the same numbers: a slot is 40 a side, the
+    -- window 404 high, and its columns —the book or the trader's offers, what
+    -- is open with what is kept under it, and the party— one beside the other.)
+    local S, H, BOOK_W, PARTY_W = 40, 404, 264, 330
+    local FULL = 14 + BOOK_W + 16 + 9 * S + 16 + PARTY_W + 14
+    -- The pages, in the order their tabs go: crafting, furnace, enchanting, the trader, the lands, the bestiary, the feats.
+    local TABS = { 0, 1, 2, 6, 3, 4, 5 }
+    G.TABS = TABS
+    local function left_column() return G.pages or G.tab == 6 end
     local function origin()
-        local gx, gy = 24, G.ground() - 150 - 332
-        local mx = gx + (G.pages and 298 or 0)
-        return gx, gy, mx, mx + 356
+        local wx, wy = 24, G.ground() - 156 - H
+        local bx = wx + 14
+        local mx = bx + (left_column() and BOOK_W + 16 or 0)
+        return wx, wy, mx, mx + 9 * S + 16, bx
+    end
+    function G.table_box()
+        local wx, wy, _, tx = origin()
+        local w = (G.tab >= 3 and G.tab <= 5) and FULL or tx + PARTY_W + 14 - wx
+        return wx, wy, w, H
     end
     local function inside(x, y, rx, ry, w, h) return x >= rx and x < rx + w and y >= ry and y < ry + h end
+    -- Where a slot of what is kept is: 27 in three rows, and the bar of nine under them.
+    local function inv_at(i, mx, wy)
+        return mx + (i % 9) * S, wy + (i < 27 and 224 + (i // 9) * S or 352)
+    end
     -- What is under a point: a tab, a slot of what is kept, of the grid, of the
-    -- furnace, of the enchanting table, of a hero; what is made; a recipe; a
-    -- button; a land of the map. And where to light it.
+    -- furnace, of the enchanting table, of a hero; what is made; a recipe, an
+    -- offer of the trader's; a button; a land of the map. And the box to light.
     local function under(x, y)
         if not x then return nil end
-        local gx, gy, mx, tx = origin()
-        for i = 0, 5 do
-            if inside(x, y, gx + i * 46, gy - 36, 44, 36) then return { "tab", i } end
+        local wx, wy, mx, tx, bx = origin()
+        for c = 0, 6 do
+            if inside(x, y, wx + c * 138, wy - 46, 134, 40) then return { "tab", TABS[c + 1] } end
         end
         if G.tab == 3 then
             for k = 0, 5 do
-                if inside(x, y, gx + 16 + k * 158, gy + 44, 150, 204) then return { "land", k } end
+                if inside(x, y, wx + 16 + k * 164, wy + 56, 156, 224) then return { "land", k } end
             end
-            if inside(x, y, gx + 16, gy + 266, 300, 32) then return { "stay", 0 } end
-            if inside(x, y, gx + 700, gy + 258, 252, 60) then return { "world", 0 } end
+            if inside(x, y, wx + 16, wy + 300, 360, 32) then return { "stay", 0 } end
+            if inside(x, y, wx + FULL - 276, wy + 296, 260, 60) then return { "world", 0 } end
             return nil
-        elseif G.tab > 3 then
+        elseif G.tab == 4 or G.tab == 5 then
             return nil
         end
         if G.tab == 0 then
             for i = 0, 8 do
-                local sx, sy = mx + 60 + (i % 3) * 36, gy + 34 + (i // 3) * 36
-                if inside(x, y, sx, sy, 36, 36) then return { "grid", i + 1, x = sx + 2, y = sy + 2 } end
+                local sx, sy = mx + 60 + (i % 3) * S, wy + 60 + (i // 3) * S
+                if inside(x, y, sx, sy, S, S) then return { "grid", i + 1, x = sx, y = sy, s = S } end
             end
-            if inside(x, y, mx + 240, gy + 62, 52, 52) then return { "made", 0, x = mx + 250, y = gy + 72 } end
+            if inside(x, y, mx + 270, wy + 92, 56, 56) then return { "made", 0, x = mx + 270, y = wy + 92, s = 56 } end
+            if inside(x, y, mx, wy + 100, 44, 40) then return { "pages", 0 } end
         elseif G.tab == 1 then
-            if inside(x, y, mx + 96, gy + 34, 36, 36) then return { "fin", 0, x = mx + 98, y = gy + 36 } end
-            if inside(x, y, mx + 96, gy + 106, 36, 36) then return { "ffuel", 0, x = mx + 98, y = gy + 108 } end
-            if inside(x, y, mx + 214, gy + 62, 52, 52) then return { "fout", 0, x = mx + 224, y = gy + 72 } end
-        else
-            if inside(x, y, mx + 22, gy + 60, 36, 36) then return { "eitem", 0, x = mx + 24, y = gy + 62 } end
-            if inside(x, y, mx + 62, gy + 60, 36, 36) then return { "elapis", 0, x = mx + 64, y = gy + 62 } end
+            if inside(x, y, mx + 110, wy + 56, S, S) then return { "fin", 0, x = mx + 110, y = wy + 56, s = S } end
+            if inside(x, y, mx + 110, wy + 148, S, S) then return { "ffuel", 0, x = mx + 110, y = wy + 148, s = S } end
+            if inside(x, y, mx + 270, wy + 92, 56, 56) then return { "fout", 0, x = mx + 270, y = wy + 92, s = 56 } end
+        elseif G.tab == 2 then
+            if inside(x, y, mx + 4, wy + 96, S, S) then return { "eitem", 0, x = mx + 4, y = wy + 96, s = S } end
+            if inside(x, y, mx + 50, wy + 96, S, S) then return { "elapis", 0, x = mx + 50, y = wy + 96, s = S } end
             for k = 0, 2 do
-                if inside(x, y, mx + 112, gy + 34 + k * 38, 228, 34) then return { "offer", k + 1 } end
+                if inside(x, y, mx + 100, wy + 56 + k * 46, 260, 42) then return { "offer", k + 1 } end
             end
         end
         for i = 0, 35 do
-            local sx, sy = mx + 16 + (i % 9) * 36, gy + (i < 27 and 168 + (i // 9) * 36 or 284)
-            if inside(x, y, sx, sy, 36, 36) then return { "inv", i + 1, x = sx + 2, y = sy + 2 } end
+            local sx, sy = inv_at(i, mx, wy)
+            if inside(x, y, sx, sy, S, S) then return { "inv", i + 1, x = sx, y = sy, s = S } end
         end
         for k = 0, #G.heroes - 1 do
-            local cy = gy + 8 + k * 64
+            local cy = wy + 48 + k * 68
             for j = 0, 4 do
-                local sx, sy = tx + 70 + j * 38, cy + 24
-                if inside(x, y, sx, sy, 36, 36) then return { "gear", k * 5 + j + 1, x = sx + 2, y = sy + 2 } end
+                local sx, sy = tx + 70 + j * S, cy + 22
+                if inside(x, y, sx, sy, S, S) then return { "gear", k * 5 + j + 1, x = sx, y = sy, s = S } end
             end
-            if inside(x, y, tx + 264, cy + 26, 42, 32) then return { "level", k + 1 } end
+            if inside(x, y, tx + 280, cy + 24, 44, 36) then return { "level", k + 1 } end
         end
-        if inside(x, y, mx + 10, gy + 68, 40, 36) and G.tab == 0 then return { "pages", 0 } end
-        if inside(x, y, mx + 298, gy + 10, 50, 30) then return { "auto", 0 } end
-        if G.pages then
+        if inside(x, y, mx + 9 * S - 70, wy + 14, 70, 26) then return { "auto", 0 } end
+        if inside(x, y, mx + 9 * S - 64, wy + 196, 64, 24) then return { "sort", 0 } end
+        if G.tab == 6 then
+            for k = 0, #G.trades - 1 do
+                if inside(x, y, bx, wy + 52 + k * 46, BOOK_W, 42) then return { "trade", k + 1, x = bx, y = wy + 52 + k * 46, w = BOOK_W, h = 42 } end
+            end
+        elseif G.pages then
             for i = 0, 35 do
-                local sx, sy = gx + 9 + (i % 6) * 46, gy + 46 + (i // 6) * 46
-                if inside(x, y, sx, sy, 44, 44) then return { "recipe", i + 1 } end
+                local sx, sy = bx + (i % 6) * 44, wy + 52 + (i // 6) * 44
+                if inside(x, y, sx, sy, 42, 42) then return { "recipe", i + 1, x = sx, y = sy, s = 42 } end
             end
         end
         return nil
@@ -573,7 +597,163 @@ return function(G)
         say({ wave = "square", freq = 440, ms = 25, volume = 0.03 })
     end
 
+    -- ── moving things as there: with Shift, to where they belong; twice, all
+    --    of a kind into the hand; dragged over slots, shared out among them ──
+    -- A pile into a stretch of what is kept: onto piles of its kind first, then
+    -- into empty slots. Answers what did not fit.
+    local function move_into(p, first, last)
+        if not (p.e and next(p.e)) then
+            for k = first, last do
+                if p.n > 0 and inv[k] and inv[k].id == p.id and not glint(inv[k]) and inv[k].n < pile(p.id) then
+                    local move = math.min(p.n, pile(p.id) - inv[k].n)
+                    inv[k].n, p.n = inv[k].n + move, p.n - move
+                end
+            end
+        end
+        for k = first, last do
+            if p.n > 0 and not inv[k] then
+                inv[k] = { id = p.id, n = p.n, e = p.e }
+                p.n = 0
+            end
+        end
+        return p.n > 0 and p or nil
+    end
+    -- Out of one of the table's own slots and into what is kept.
+    local function home(t, key)
+        local p = t[key]
+        if not p then return end
+        local left = add(p.id, p.n, p.e)
+        if left > 0 then
+            p.n = left
+            note("No room left for the " .. NAMES[p.id]:lower())
+        else
+            t[key] = nil
+        end
+    end
+    -- Into a slot of the furnace or the enchanting table, from slot k of what is kept.
+    local function into(t, key, k)
+        local p, there = inv[k], t[key]
+        if not there then
+            t[key], inv[k] = p, nil
+        elseif there.id == p.id and there.n < pile(p.id) then
+            local move = math.min(p.n, pile(p.id) - there.n)
+            there.n, p.n = there.n + move, p.n - move
+            if p.n <= 0 then inv[k] = nil end
+        end
+    end
+    -- What the grid makes, as many times as it can, into what is kept.
+    local function craft_all()
+        local made = 0
+        for _ = 1, 64 do
+            local r = laid()
+            if not r then break end
+            local e = nil
+            for k = 1, 9 do
+                if grid[k] and r.keeps and grid[k].id == r.key[r.keeps] then e = grid[k].e end
+            end
+            if add(r.out, r.n, e) > 0 then note("No room left for the " .. NAMES[r.out]:lower()) break end
+            for k = 1, 9 do
+                if grid[k] then
+                    grid[k].n -= 1
+                    if grid[k].n <= 0 then grid[k] = nil end
+                end
+            end
+            G.found[r.out] = true
+            made_feats(r.out)
+            made += 1
+        end
+        if made > 0 then
+            say({ wave = "triangle", freq = 660, to = 990, ms = 120, volume = 0.1 })
+            log("crafted", made, "at once")
+        end
+    end
+    local function quick(ref)
+        local kind, k = ref[1], ref[2]
+        if kind == "inv" then
+            local p = inv[k]
+            if not p then return end
+            local def = GEAR[p.id]
+            if G.tab == 1 and G.SMELT[p.id] then return into(G.furnace, "input", k) end
+            if G.tab == 1 and G.FUEL[p.id] then return into(G.furnace, "fuel", k) end
+            if G.tab == 2 and p.id == "lapis" then return into(G.bench, "lapis", k) end
+            if G.tab == 2 and def and def.slot and def.slot <= 4 and not G.bench.item then
+                G.bench.item, inv[k] = p, nil
+                return
+            end
+            -- Something to wear: onto the first hero who can and has that slot free.
+            if def and def.slot then
+                for _, h in G.heroes do
+                    if not h.gear[def.slot] and fits(h, def) then
+                        G.held, inv[k] = p, nil
+                        wear(h, def.slot)
+                        if G.held then back(G.held) G.held = nil end
+                        return
+                    end
+                end
+            end
+            -- Otherwise between what is kept and the bar.
+            inv[k] = nil
+            local left = k <= 27 and move_into(p, 28, 36) or move_into(p, 1, 27)
+            if left then
+                -- No room there: it stays where it was, as much as is left of it.
+                inv[k] = left
+            end
+            say({ wave = "square", freq = 600, ms = 20, volume = 0.03 })
+        elseif kind == "grid" then home(grid, k)
+        elseif kind == "fin" then home(G.furnace, "input")
+        elseif kind == "ffuel" then home(G.furnace, "fuel")
+        elseif kind == "fout" then
+            if G.furnace.out then G.feat("smelt") end
+            home(G.furnace, "out")
+        elseif kind == "eitem" then home(G.bench, "item")
+        elseif kind == "elapis" then home(G.bench, "lapis")
+        elseif kind == "made" then craft_all()
+        elseif kind == "gear" then
+            local h, j = G.heroes[(k - 1) // 5 + 1], (k - 1) % 5 + 1
+            local p = h.gear[j]
+            if p and add(p.id, p.n, p.e) == 0 then
+                h.gear[j] = nil
+                G.refit()
+            end
+        elseif kind == "trade" then G.trade(k, true)
+        else
+            return false
+        end
+        return true
+    end
+    -- Every pile of the kind the hand carries, gathered into it as far as it goes.
+    local function gather()
+        local held = G.held
+        if not held or glint(held) then return end
+        for _, t in { inv, grid } do
+            for k = 1, (t == inv and 36 or 9) do
+                local p = t[k]
+                if held.n < pile(held.id) and p and p.id == held.id and not glint(p) then
+                    local move = math.min(p.n, pile(held.id) - held.n)
+                    held.n, p.n = held.n + move, p.n - move
+                    if p.n <= 0 then t[k] = nil end
+                end
+            end
+        end
+    end
+    -- What is kept, in order: piles of a kind together, in the order of the sheet. The bar stays as it is.
+    local function sort_kept()
+        local list = {}
+        for k = 1, 27 do
+            if inv[k] then table.insert(list, inv[k]) end
+            inv[k] = nil
+        end
+        table.sort(list, function(a, b)
+            if a.id ~= b.id then return ITEM[a.id] < ITEM[b.id] end
+            return a.n > b.n
+        end)
+        for _, p in list do move_into(p, 1, 27) end
+        say({ wave = "square", freq = 500, to = 700, ms = 60, volume = 0.04 })
+    end
+
     local pressed = nil     -- where the button went down, and whether it picked something up there
+    local spread = nil      -- a pile being shared out over the slots the mouse goes over, button down
+    local last_click = nil  -- for a second press on the same slot
     local function press(ref, right)
         if not ref then return end
         local kind, k = ref[1], ref[2]
@@ -589,6 +769,8 @@ return function(G)
         elseif kind == "offer" then enchant(k)
         elseif kind == "gear" then wear(G.heroes[(k - 1) // 5 + 1], (k - 1) % 5 + 1)
         elseif kind == "level" then G.level_up(G.heroes[k])
+        elseif kind == "trade" then G.trade(k, false)
+        elseif kind == "sort" then sort_kept()
         elseif kind == "recipe" then
             local r = shown()[k]
             if r and not G.held then
@@ -613,7 +795,7 @@ return function(G)
         clear_grid()
         clear_bench()
         back(G.held)
-        G.held = nil
+        G.held, spread = nil, nil
         G.open = false
         fact.open = false
     end
@@ -630,26 +812,131 @@ return function(G)
     end
 
     -- ── what the hand asks for ──
+    local function shift() return held("Shift_L") or held("Shift_R") end
+    -- Whether a slot of what is kept or of the grid can take some of the pile in hand.
+    local function takes(ref)
+        if not ref or (ref[1] ~= "inv" and ref[1] ~= "grid") or not G.held then return false end
+        local p = (ref[1] == "inv" and inv or grid)[ref[2]]
+        return not p or (p.id == G.held.id and not glint(p) and not glint(G.held) and p.n < pile(p.id))
+    end
+    -- Let go after going over several slots: the pile shared out evenly among them.
+    local function share()
+        local s = spread
+        spread = nil
+        if not s then return end
+        local t = s.kind == "inv" and inv or grid
+        if #s.list == 1 then return press({ s.kind, s.list[1] }, false) end
+        local held = G.held
+        if not held then return end
+        local each = math.max(1, held.n // #s.list)
+        for _, k in s.list do
+            if held.n <= 0 then break end
+            local p = t[k]
+            local room = p and (pile(held.id) - p.n) or pile(held.id)
+            local move = math.min(each, room, held.n)
+            if move > 0 then
+                if p then p.n += move else t[k] = { id = held.id, n = move, e = held.e } end
+                held.n -= move
+            end
+        end
+        if held.n <= 0 then G.held = nil end
+        if t == grid then G.ghosts = nil end
+        say({ wave = "square", freq = 560, ms = 25, volume = 0.03 })
+    end
     on("toggle", function() open_at(0) end)
     on("station", function(n) open_at(n) end)
     on("click", function()
         local ref = under(mouse.x, mouse.y)
+        if ref and shift() and quick(ref) then
+            pressed, last_click = nil, nil
+            return
+        end
+        -- Twice on the same slot, quickly: everything of that kind into the hand.
+        if ref and last_click and last_click[1] == ref[1] and last_click[2] == ref[2] and G.ui_clock - last_click.t < 0.35 and G.held and (ref[1] == "inv" or ref[1] == "grid") then
+            gather()
+            pressed, last_click = nil, nil
+            return
+        end
+        last_click = ref and { ref[1], ref[2], t = G.ui_clock } or nil
+        -- With something in hand, on a slot that can take it: wait to see whether the mouse goes over others.
+        if takes(ref) then
+            spread = { kind = ref[1], list = { ref[2] }, seen = { [ref[2]] = true } }
+            pressed = nil
+            return
+        end
         local empty = G.held == nil
         press(ref, false)
         pressed = ref and { ref[1], ref[2], picked = empty and G.held ~= nil } or nil
     end)
+    -- The right button: half, or one; and dragged with it held, one in each slot it goes over.
+    local rspread = nil
     on("rclick", function()
-        press(under(mouse.x, mouse.y), true)
+        local ref = under(mouse.x, mouse.y)
+        press(ref, true)
         pressed = nil
+        rspread = ref and (ref[1] == "inv" or ref[1] == "grid") and G.held and { kind = ref[1], seen = { [ref[2]] = true } } or nil
     end)
     local DROPS_ON = { inv = true, grid = true, gear = true, fin = true, ffuel = true, eitem = true, elapis = true }
     on("unclick", function()
+        if spread then return share() end
         -- Pressed on one slot and let go on another: carried there and put down.
         local ref = under(mouse.x, mouse.y)
         if pressed and pressed.picked and G.held and ref and (ref[1] ~= pressed[1] or ref[2] ~= pressed[2]) and DROPS_ON[ref[1]] then
             press(ref, false)
         end
         pressed = nil
+    end)
+    -- While a button is held, the slots the mouse goes over.
+    function G.drag_slots()
+        if spread then
+            if not mouse.left then return share() end
+            local ref = under(mouse.x, mouse.y)
+            if ref and ref[1] == spread.kind and not spread.seen[ref[2]] and takes(ref) and #spread.list < (G.held and G.held.n or 0) then
+                spread.seen[ref[2]] = true
+                table.insert(spread.list, ref[2])
+            end
+        end
+        if rspread then
+            if not mouse.right or not G.held then rspread = nil return end
+            local ref = under(mouse.x, mouse.y)
+            if ref and ref[1] == rspread.kind and not rspread.seen[ref[2]] and takes(ref) then
+                rspread.seen[ref[2]] = true
+                slot_press(ref[1] == "inv" and inv or grid, ref[2], true)
+            end
+        end
+    end
+    function G.spreading()
+        local list = {}
+        if spread then
+            local wx, wy, mx = origin()
+            for _, k in spread.list do
+                if spread.kind == "inv" then
+                    local x, y = inv_at(k - 1, mx, wy)
+                    table.insert(list, { x = x, y = y })
+                else
+                    table.insert(list, { x = mx + 60 + ((k - 1) % 3) * S, y = wy + 60 + ((k - 1) // 3) * S })
+                end
+            end
+        end
+        return list
+    end
+    -- The keyboard, while the table is open: Esc or E shuts it; 1 to 9 swap
+    -- the slot the mouse is on with that slot of the bar.
+    on("key_down", function(name)
+        if not G.open then return end
+        if name == "Escape" or name == "e" then
+            shut()
+            say({ wave = "saw", freq = 260, to = 140, ms = 160, volume = 0.06 })
+            return
+        end
+        local n = tonumber(name)
+        if n and n >= 1 and n <= 9 then
+            local ref = under(mouse.x, mouse.y)
+            if ref and ref[1] == "inv" and ref[2] ~= 27 + n then
+                inv[ref[2]], inv[27 + n] = inv[27 + n], inv[ref[2]]
+                say({ wave = "square", freq = 600, ms = 20, volume = 0.03 })
+            end
+        end
     end)
     on("dig", fetch)
     on("reap", reap)
@@ -684,6 +971,10 @@ return function(G)
             if def.level == 3 then G.feat("pick") end
         elseif def.use == "golem" or def.use == "cleric" then
             if not G.recruit(def.use) then return false end
+        elseif def.use == "xp" then
+            G.points += 1
+            note("A level of experience to spend")
+            emit("levelup")
         else
             return false
         end
@@ -845,7 +1136,62 @@ return function(G)
 
     -- ── what is seen of all that: told every frame, stopped or not ──
     local function cell(p) return p and ITEM[p.id] or -1 end
+    -- What a thing is, when the mouse is on it: its name, in the colour of how
+    -- rare it is, and under it what it does, what it is made into, and what
+    -- the trader gives for it.
+    local TROPHY = { crown = true, scarab = true, slime_core = true, frost_string = true, magma_heart = true, giant_eye = true, totem = true, golem_core = true, bell = true }
+    local RARE = { diamond = true, ender_staff = true, frost_bow = true, ender_charm = true, pearl = true, xp_bottle = true }
+    local function tone(p)
+        if glint(p) then return 3 end
+        if TROPHY[p.id] then return 1 end
+        if p.id == "emerald" then return 4 end
+        if RARE[p.id] or p.id:find("diamond") or p.id:find("netherite") then return 2 end
+        return 0
+    end
+    local function sentence(s) return s:sub(1, 1):upper() .. s:sub(2) end
+    local function about(p)
+        local lines = {}
+        if p.e then
+            for _, key in G.ENCH_ORDER do
+                if p.e[key] then table.insert(lines, ENCH[key].name .. " " .. G.ROMAN[p.e[key]]) end
+            end
+        end
+        local def = GEAR[p.id]
+        if def and def.says then table.insert(lines, sentence(def.says)) end
+        if def and def.who then table.insert(lines, "Only the " .. def.who .. " can use it") end
+        if G.SAYS[p.id] then table.insert(lines, sentence(G.SAYS[p.id])) end
+        if G.SMELT[p.id] then table.insert(lines, "The furnace makes it into " .. NAMES[G.SMELT[p.id]]:lower()) end
+        if G.FUEL[p.id] then table.insert(lines, "Fuel: one smelts " .. G.FUEL[p.id] .. (G.FUEL[p.id] > 1 and " things" or " thing")) end
+        local into_ = {}
+        for _, r in RECIPES do
+            if r.needs[p.id] and known(r) then table.insert(into_, NAMES[r.out]) end
+        end
+        if #into_ > 0 then
+            local more = #into_ > 3 and (" and " .. (#into_ - 3) .. " more") or ""
+            while #into_ > 3 do table.remove(into_) end
+            table.insert(lines, "Goes into: " .. table.concat(into_, ", ") .. more)
+        end
+        if p.id == "emerald" then table.insert(lines, "What the trader pays and asks for") end
+        local o = G.buys(p.id)
+        if o then table.insert(lines, "The trader gives " .. o.emeralds .. (o.emeralds > 1 and " emeralds" or " emerald") .. " for " .. o.n) end
+        return table.concat(lines, "\n")
+    end
+    local function tell(title, body, t)
+        text.tip, text.tip2 = title or "", body or ""
+        fact["tip.tone"] = t or 0
+    end
+    local TAB_SAYS = {
+        [0] = { "Crafting", "Lay things on the grid as their recipe says.\nThe book at the left lays one out for you" },
+        [1] = { "Furnace", "Raw iron and raw gold become ingots.\nIt goes on by itself, also while you are away" },
+        [2] = { "Enchanting", "A weapon or armour, lapis and levels:\nsomething more on what a hero carries" },
+        [6] = { "Trading", "The villager buys what the waves leave\nand sells what the camp is short of" },
+        [3] = { "The lands", "Where the party is, and where it can go" },
+        [4] = { "Bestiary", "Everything met, and what it left" },
+        [5] = { "Feats", "What there is to have done" },
+    }
+    local SLOT_NAMES = { "Weapon", "Helmet", "Chestplate", "Boots", "Charm" }
     function G.show_camp()
+        G.drag_slots()
         local list = {}
         for k = 1, 36 do list[k] = inv[k] and { cell = ITEM[inv[k].id], n = inv[k].n, glint = glint(inv[k]) } or { cell = -1, n = 0, glint = false } end
         model.slots = list
@@ -855,14 +1201,21 @@ return function(G)
         fact["farm.ripe"] = ripe()
         fact["furnace.lit"] = smelting() ~= nil
         fact.points = G.points
+        fact.emeralds = count("emerald")
         local mx_, my_ = mouse.x or -100, mouse.y or -100
         fact["hand.x"], fact["hand.y"] = mx_, my_
         fact["hand.cell"], fact["hand.n"], fact["hand.glint"] = cell(G.held), G.held and G.held.n or 0, glint(G.held)
         if not G.open then
             fact["over.on"], fact.tipped = false, false
-            text.tip = ""
+            tell("", "")
             return
         end
+        local wx, wy, w = G.table_box()
+        fact["ui.x"], fact["ui.y"], fact["ui.w"] = wx, wy, w
+        local _, _, mx, tx, bx = origin()
+        fact["ui.mx"], fact["ui.tx"], fact["ui.bx"] = mx, tx, bx
+        fact["ui.left"] = left_column()
+        model.spread = G.spreading()
         local made = nil
         if G.tab == 0 then
             local cells = {}
@@ -888,8 +1241,14 @@ return function(G)
             end
             model.offers = rows
             fact["eitem.done"] = G.bench.item ~= nil and #rows == 0
+        elseif G.tab == 6 then
+            local rows = {}
+            for k, o in G.trades do
+                rows[k] = { buy = o.buy, cell = ITEM[o.id], n = o.n, em = o.emeralds, left = o.left, uses = o.uses, can = G.can_trade(o) }
+            end
+            model.trades = rows
         end
-        if G.tab <= 2 then
+        if G.tab <= 2 or G.tab == 6 then
             local pagelist, can = {}, 0
             for k, r in shown() do
                 local ok = enough(r)
@@ -908,51 +1267,69 @@ return function(G)
             end
             model.cards = cards
         end
-        -- The slot the mouse is on, and what that holds is called.
+        -- The slot the mouse is on, lit, and what it holds, told.
         local ref = under(mouse.x, mouse.y)
         local lit = ref ~= nil and ref.x ~= nil
         fact["over.on"] = lit
-        local name = ""
+        if lit then
+            fact["over.x"], fact["over.y"], fact["over.w"], fact["over.h"] = ref.x, ref.y, ref.w or ref.s, ref.h or ref.s
+        end
+        local title, body, t = "", "", 0
+        local function thing(p, empty_title, empty_body)
+            if p then title, body, t = NAMES[p.id] or p.id, about(p), tone(p)
+            else title, body = empty_title or "", empty_body or "" end
+        end
         if ref then
             local kind, k = ref[1], ref[2]
-            if lit then
-                fact["over.x"], fact["over.y"] = ref.x, ref.y
-                if kind == "inv" then name = G.describe(inv[k])
-                elseif kind == "grid" then name = G.describe(grid[k])
-                elseif kind == "made" then name = made and NAMES[made.out] or ""
-                elseif kind == "fin" then name = f.input and G.describe(f.input) or "To smelt: raw iron, raw gold"
-                elseif kind == "ffuel" then name = f.fuel and G.describe(f.fuel) or "Fuel: coal, sticks"
-                elseif kind == "fout" then name = G.describe(f.out)
-                elseif kind == "eitem" then name = G.bench.item and G.describe(G.bench.item) or "A weapon or a piece of armour"
-                elseif kind == "elapis" then name = G.bench.lapis and "Lapis Lazuli" or "Lapis lazuli: one for each level it takes"
-                elseif kind == "gear" then
-                    local h, j = G.heroes[(k - 1) // 5 + 1], (k - 1) % 5 + 1
-                    name = h.gear[j] and G.describe(h.gear[j]) or (j == 1 and h.rest and NAMES[h.rest]) or ({ "Fists", "Helmet", "Chestplate", "Boots", "Charm" })[j]
+            if kind == "inv" then thing(inv[k])
+            elseif kind == "grid" then thing(grid[k])
+            elseif kind == "made" then
+                if made then
+                    thing({ id = made.out, n = made.n })
+                    body = (body ~= "" and body .. "\n" or "") .. "Shift: make as many as there is for"
                 end
+            elseif kind == "fin" then thing(f.input, "To smelt", "Raw iron or raw gold")
+            elseif kind == "ffuel" then thing(f.fuel, "Fuel", "Coal smelts eight things, a stick one")
+            elseif kind == "fout" then thing(f.out)
+            elseif kind == "eitem" then thing(G.bench.item, "To enchant", "A weapon or a piece of armour")
+            elseif kind == "elapis" then thing(G.bench.lapis, "Lapis lazuli", "One for each level an enchantment takes")
+            elseif kind == "gear" then
+                local h, j = G.heroes[(k - 1) // 5 + 1], (k - 1) % 5 + 1
+                if h.gear[j] then thing(h.gear[j])
+                elseif j == 1 and h.rest then title, body = NAMES[h.rest] or h.rest, "What the " .. h.shown:lower() .. " has when nothing better is given"
+                else title, body = SLOT_NAMES[j], "Drag one here, or Shift and a press on it below" end
             elseif kind == "recipe" then
                 local r = shown()[k]
                 if r then
-                    local gx, gy = origin()
-                    fact["over.on"] = true
-                    fact["over.x"], fact["over.y"] = gx + 15 + ((k - 1) % 6) * 46, gy + 52 + ((k - 1) // 6) * 46
-                    name = NAMES[r.out]
+                    local need = {}
+                    for id, many in r.needs do table.insert(need, many .. " " .. NAMES[id]:lower()) end
+                    title, t = NAMES[r.out], tone({ id = r.out })
+                    body = "Takes " .. table.concat(need, ", ") .. (enough(r) and "" or "\nSomething is short")
+                    local def = GEAR[r.out]
+                    if def and def.says then body ..= "\n" .. sentence(def.says) end
                 end
             elseif kind == "offer" then
                 local o = offers()[k]
-                if o then name = ENCH[o.key].name .. ": " .. ENCH[o.key].says end
+                if o then title, body, t = ENCH[o.key].name .. " " .. G.ROMAN[o.to], sentence(ENCH[o.key].says) .. "\n" .. o.cost .. (o.cost > 1 and " levels and " or " level and ") .. o.cost .. " lapis", 3 end
             elseif kind == "level" then
                 local h = G.heroes[k]
-                name = h.shown .. " to level " .. (h.level + 1) .. ": " .. G.level_cost(h) .. (G.level_cost(h) > 1 and " levels" or " level")
+                title = h.shown .. " to level " .. (h.level + 1)
+                body = "Takes " .. G.level_cost(h) .. (G.level_cost(h) > 1 and " levels" or " level") .. " of experience\nMore life, and harder blows"
+            elseif kind == "trade" then
+                title, body = G.trade_tip(k)
+                t = 4
             elseif kind == "tab" then
-                name = ({ "Crafting", "Furnace", "Enchanting", "The lands", "Bestiary", "Feats" })[k + 1]
-            elseif kind == "land" then
-                name = G.land_tip(k)
-            elseif kind == "world" then
-                name = G.world_tip()
+                local says = TAB_SAYS[k]
+                if says then title, body = says[1], says[2] end
+            elseif kind == "sort" then title, body = "Sort", "Piles of a kind together, in order.\nThe bar stays as it is"
+            elseif kind == "auto" then title, body = "By itself", "The camp crafts, hands things over and\nspends its levels without being told"
+            elseif kind == "pages" then title, body = "The book", "Every recipe whose things have been found"
+            elseif kind == "land" then title = G.land_tip(k)
+            elseif kind == "world" then title = G.world_tip()
             end
         end
-        text.tip = name
-        fact.tipped = name ~= ""
+        tell(title, body, t)
+        fact.tipped = title ~= ""
     end
     G.under, G.FULL = under, FULL
 end

@@ -86,7 +86,7 @@ return function(G)
     local tell_in = 0
     function G.show_book(dt)
         fact.world, fact.stay = G.world, G.stay
-        if not G.open or G.tab < 3 then return end
+        if not G.open or G.tab < 3 or G.tab > 5 then return end
         tell_in -= dt
         if tell_in > 0 then return end
         tell_in = 0.2
@@ -114,7 +114,7 @@ return function(G)
             end
             model.beasts = list
             text.count = met .. " of " .. #G.BEASTS .. " met  -  " .. G.stats.felled .. " felled"
-        else
+        elseif G.tab == 5 then
             local list, done = {}, 0
             for k, f in G.FEATS do
                 if G.feats[f.id] then done += 1 end

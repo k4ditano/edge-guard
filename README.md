@@ -17,7 +17,7 @@ It is written in [pleamar](https://github.com/k4ditano/pleamar): one scene
 
 - Linux with a Wayland compositor that has layer-shell: Hyprland, Sway, niri,
   KDE Plasma, pleamar-wm. Not GNOME.
-- **pleamar 0.3.0 or newer.** Its installer, in your home and nothing outside it:
+- **pleamar 0.4.10 or newer.** Its installer, in your home and nothing outside it:
 
   ```sh
   curl -fsSL https://raw.githubusercontent.com/k4ditano/pleamar/main/install.sh | sh
@@ -77,17 +77,36 @@ The first time, `play.sh` copies the game's font (Monocraft) into
 
 **The camp**
 
-- **The chest or the crafting table** open the table. Things are carried with
-  the mouse; the right button takes half of a pile, or puts down one. Lay them
-  on the grid as the recipe says and take what they make from the slot at its
-  right. **The book** at its left knows every recipe whose ingredients you
-  have found, and lays one out when pressed.
+- **The chest or the crafting table** open the table: a pane of glass over
+  your desktop, its pages as tabs above it. Things are carried as there:
+  - a press picks up a pile, another puts it down, onto a pile of its kind or
+    in place of what is there; the right button takes half, or puts down one;
+  - **dragged over several slots**, a pile is shared out evenly among them
+    (with the right button, one in each);
+  - **twice on a slot**, everything of that kind comes into the hand;
+  - **Shift** and a press sends a pile where it belongs: between what is kept
+    and the bar, into the furnace or onto the enchanting table, onto the hero
+    who can wear it, out of the grid; on what the grid makes, as many as there
+    is for;
+  - **1 to 9** swap the slot under the mouse with that slot of the bar, **Sort**
+    puts piles of a kind together, and **Esc** or **E** shuts the table.
+
+  Lay things on the grid as the recipe says and take what they make from the
+  slot at its right. **The book** at its left knows every recipe whose
+  ingredients you have found, and lays one out when pressed. Whatever the mouse
+  is on says what it is: what it does, what it goes into, what the trader
+  gives for it.
 - **The panel** at its right is the party: a weapon, a helmet, a chestplate,
   boots and a charm each. Experience fills levels, shown in green; the `+` on
   a hero spends them on that hero.
 - **The enchanting table** spends them on what the heroes carry instead: put a
   weapon or a piece of armour on it, lapis beside it, and choose one of what
   it offers.
+- **The trader** keeps a stall past the wheat. He buys what the waves leave
+  —so many of a thing for an emerald— and sells, for emeralds, potions, TNT,
+  lapis, bottles of experience and more. What he wants changes with the land;
+  each offer can be taken so many times, and he has all of it again when the
+  next wave starts. Chests leave emeralds now and then too.
 - **The mine** digs by itself: press it to fetch what it has. A better pickaxe
   finds more. **The furnace** turns raw iron and raw gold into ingots, with
   coal or sticks. **The wheat** grows by itself: press it when it is golden.
@@ -98,6 +117,29 @@ The first time, `play.sh` copies the game's font (Monocraft) into
   things over, spend its levels on the heroes, feed the furnace, fetch and reap.
 - The other pages of the table are the **bestiary** (everything you have met,
   how many have fallen and what they left) and the **feats**.
+
+**Over the whole screen**
+
+The field lies along the bottom edge, but what happens on it does not stay
+there. A blast sends a ring through your desktop that bends your windows as it
+passes, and the screen shakes; the lightning comes down crooked from the top
+of the monitor; endermen step out to anywhere on the screen and look down from
+over your windows before they come back; slimes drop from the top edge, and
+spiders come down on threads of their own. Before a lord comes, its shadow,
+far bigger than it, crosses the screen behind everything, and its steps are
+felt. (The bending is pleamar reading what is behind the game: a scene's own
+shader can, on a compositor that lets the screen be captured.)
+
+**What flies**
+
+Some foes do not walk at all. Phantoms wheel over the screen in the
+overworld's later waves and dive at the party; ghasts float high over the
+Nether and spit fireballs — **press a fireball to send it back**, and it
+fells the ghast that threw it. At the End's third wave the Ender Dragon comes,
+loops over your whole desktop and swoops down along the field breathing; the
+wave is not won while it lives. The archer and the witch shoot at what flies
+when nothing on the ground is within reach, the lightning goes for the dragon,
+and anything up there can be pressed to strike it.
 
 Your game is kept in `~/.local/share/pleamar/guard/guard5.json`.
 

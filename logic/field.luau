@@ -7,6 +7,7 @@ return function(G)
         G.heroes, G.wolves, G.horde, G.shots, G.bombs, G.drops, G.puffs, G.chests, G.marks, G.webs, G.queue
     local SMITE_EVERY = 20
     local units = {}                 -- everyone the horde can go for, this frame
+    G.units = units
 
     -- Which wave this is, counted from the first land's first: what everything's strength goes by.
     local function wave() return G.land * 5 + G.step + 1 end
@@ -49,13 +50,26 @@ return function(G)
             puff(x + (math.random() - 0.5) * (spread or 40), y + (math.random() - 0.5) * (spread or 40), kind or 0, 7 + math.random() * 8, (math.random() - 0.5) * 50, -20 - math.random() * 50, 1.6 + math.random())
         end
     end
+    -- ── what shakes the screen and bends what is behind the game ──
+    -- A ring through the desktop from where something went off: how far it
+    -- reaches, how hard it pushes (negative pulls in), how much its rim shines.
+    G.waves, G.shake, G.bolt, G.bolt_t = {}, 0, {}, 0
+    local function ring(x, y, size, push, glow, last)
+        if #G.waves >= 8 then table.remove(G.waves, 1) end
+        table.insert(G.waves, { x = x, y = y, size = size, push = push, glow = glow or 0.4, age = 0, rate = 1 / (last or 0.75) })
+    end
+    local function quake(amount) G.shake = math.max(G.shake, amount) end
+    G.ring, G.quake = ring, quake
     local function burst(x, y, big)
         fact["at.x"], fact["at.y"] = x, y
         emit("boom")
+        ring(x, y, big and 300 or 190, big and 22 or 12, 0.5)
+        quake(big and 11 or 4)
+        if big then emit("debris") end
         smoke(x, y, big and 16 or 9, 1, big and 160 or 90)
         say({ wave = "noise", freq = big and 300 or 420, to = 50, ms = big and 520 or 320, volume = big and 0.16 or 0.1, release = big and 420 or 240, pan = pan(x) })
     end
-    G.smoke = smoke
+    G.smoke, G.puff, G.burst = smoke, puff, burst
 
     -- ── what is left behind ──
     -- (Answers whether there was room on the field for it.)
@@ -113,6 +127,7 @@ return function(G)
         say({ wave = "noise", freq = 500, to = 200, ms = 60, volume = 0.04, pan = pan(u.x) }, 0.12)
     end
     local function alive(u) return not u.down and u.hp > 0 end
+    G.hurt, G.harm, G.orbs = hurt, harm, orbs
 
     local function near(x, y, range, skip)
         -- The living foe closest to a point, within a range.
@@ -135,7 +150,10 @@ return function(G)
     local function muster()
         local land = LANDS[G.land + 1]
         table.clear(queue)
-        if G.step == 4 then table.insert(queue, { kind = land.lord }) end
+        if G.step == 4 then
+            table.insert(queue, { kind = land.lord })
+            G.omen = { t = 0, boss = KIND[land.lord].boss }
+        end
         local many = math.min(5 + wave() * 2, 60)
         -- The rarer ones of a land come as it goes on.
         local total, open_to = 0, math.min(#land.who, 2 + G.step)
@@ -157,6 +175,9 @@ return function(G)
         text.where = land.short .. " " .. (G.step + 1) .. "/5"
         fact.land = G.land
         emit("newwave")
+        -- The trader: what he has for this land, and all of it again.
+        if G.stocked ~= G.world * 10 + G.land then G.stock() else G.restock() end
+        G.sky_muster()
         say({ wave = "saw", freq = 196, to = 294, ms = 240, volume = 0.1 })
     end
 
@@ -175,8 +196,14 @@ return function(G)
             f.lord, f.dmg, f.reach, f.sp_in = k.name, f.dmg * 2, k.reach, 6 + math.random() * 2
         end
         if k.climbs and not x then
-            -- By the ceiling, then down the wall: it comes in from above.
+            -- By the ceiling, then down the wall: it comes in from above. Or
+            -- down a thread of its own, from somewhere along the ceiling.
             f.edge, f.x, f.y, f.turn = "ceiling", G.W * (0.5 + math.random() * 0.25), 0, 180
+            if math.random() < 0.6 then f.drop_at = f.x + math.random() * (G.W - 80 - f.x) end
+        elseif k.hops and not k.boss and not small and not x and math.random() < 0.5 then
+            -- A slime out of the sky: it falls from the top of the screen and lands with a thump.
+            local from = math.min(front_post() + 260, G.W * 0.7)
+            f.edge, f.x, f.y, f.vy = "fall", from + math.random() * (G.W - 120 - from), -140, 0
         end
         table.insert(horde, f)
         return f
@@ -189,6 +216,8 @@ return function(G)
         for _, f in horde do
             if f.hp > 0 and f.wind then target = f end
         end
+        -- If not, at the dragon, if it is up; and then at whoever is nearest the camp.
+        if not target then target = G.sky_bolt() end
         if not target then
             for _, f in horde do
                 if f.hp > 0 and (not target or f.x < target.x) then target = f end
@@ -198,8 +227,31 @@ return function(G)
         G.smite_in = SMITE_EVERY
         fact["bolt.x"] = target.x
         emit("smote")
+        -- A bolt from the top of the screen, crooked all the way down, and the desktop rippling where it lands.
+        table.clear(G.bolt)
+        local x, y, g = target.x + (math.random() - 0.5) * 160, 0, ground()
+        local bottom = target.air and target.y or g - 40
+        local steps = 16
+        for k = 1, steps do
+            local ny = bottom * k / steps
+            local nx = k == steps and target.x or x + (math.random() - 0.5) * 70 + (target.x - x) * 0.25
+            table.insert(G.bolt, { x = x, y = y, x2 = nx, y2 = ny, w = 7 - k * 0.25 })
+            if k == 6 or k == 11 then
+                -- (A branch.)
+                local bx, by = nx + (math.random() - 0.5) * 140, ny + 60 + math.random() * 60
+                table.insert(G.bolt, { x = nx, y = ny, x2 = bx, y2 = by, w = 2.5 })
+            end
+            x, y = nx, ny
+        end
+        G.bolt_t = 0.32
+        ring(target.x, target.air and target.y or g - 30, 240, 16, 0.9, 0.6)
+        quake(8)
         smoke(target.x, target.y - 40, 10, 1, 100)
         say({ wave = "noise", freq = 2400, to = 90, ms = 480, volume = 0.14, release = 380, pan = pan(target.x) })
+        if target.air then
+            hurt(target, (40 + wave() * 10) * tough() * 2, 0, nil, nil, "bolt")
+            return
+        end
         for _, f in horde do
             if math.abs(f.x - target.x) < 130 then hurt(f, (40 + wave() * 10) * tough(), 200, nil, nil, "bolt") end
         end
@@ -249,6 +301,8 @@ return function(G)
             if r < one[2] then name = one[1] break end
         end
         leave(name, c.x, ground() - 40, 400)
+        -- And now and then an emerald, more often the rarer the chest.
+        if math.random() < ({ [0] = 0.12, 0.25, 0.4, 0.6 })[c.kind] then leave("emerald", c.x, ground() - 40, 420) end
     end
 
     -- What is thrown from the camp: TNT, which waits a moment where it lands; a
@@ -444,6 +498,7 @@ return function(G)
 
     local function clear_field()
         for _, t in { horde, queue, shots, bombs, marks, webs } do table.clear(t) end
+        G.sky_clear()
         G.storm = 0
         fact.king, fact.wind = false, 0
     end
@@ -493,7 +548,7 @@ return function(G)
                     arrive(table.remove(queue, 1))
                     G.spawn_in = math.max(0.3, 1.0 - wave() * 0.03) * (0.6 + math.random() * 0.8)
                 end
-            elseif #horde == 0 then
+            elseif #horde == 0 and not G.sky_holds() then
                 -- Cleared: a chest falls for it, and waits to be opened.
                 reward(G.step == 4)
                 G.stage, G.stage_in = "rest", 2.4
@@ -649,6 +704,8 @@ return function(G)
                     else
                         -- (An arrow never finds an enderman: the archer does not waste one.)
                         local target = near(h.x, g - 40, h.range, h.name == "archer" and function(f) return f.k.blinks and not f.lord end or nil)
+                        -- Nothing on the ground within reach: whatever flies, for the bow and the flasks.
+                        if not target and (h.name == "archer" or h.name == "witch") then target = G.sky_near(h.x, g - 60, h.range) end
                         if h.sweep and target and (target.edge or target.x - h.x < -26) then target = nil end
                         if target then h.acting, h.target, h.wait = 0, target, h.every / h.quick end
                     end
@@ -746,9 +803,37 @@ return function(G)
                     f.wind = nil
                     unmark(f)
                 end
+            elseif f.edge == "sky" then
+                walking = false
+                f.sky += dt
+                if math.random() < dt * 10 then puff(f.x + (math.random() - 0.5) * 50, f.y - 20 - math.random() * 90, 2, 6, 0, -20, 1.6) end
+                if f.sky >= 1.5 then
+                    smoke(f.x, f.y - 64, 9, 2, 70)
+                    ring(f.x, f.y - 64, 150, -18, 0.8, 0.5)
+                    f.edge, f.x, f.y, f.sky = nil, f.back, g, nil
+                    smoke(f.x, g - 64, 9, 2, 70)
+                    ring(f.x, g - 64, 150, -18, 0.8, 0.5)
+                    say({ wave = "sine", freq = 1100, to = 180, ms = 200, volume = 0.05, pan = pan(f.x) }, 0.2)
+                end
+            elseif f.edge == "fall" then
+                walking = false
+                f.vy += 2300 * dt
+                f.y += f.vy * dt
+                if f.y >= g then
+                    f.y, f.edge, f.vy = g, nil, nil
+                    smoke(f.x, g - 8, 8, 0, 90)
+                    ring(f.x, g - 10, 170, 10, 0.3, 0.6)
+                    quake(3)
+                    say({ wave = "sine", freq = 140, to = 60, ms = 160, volume = 0.08, pan = pan(f.x) }, 0.15)
+                end
+            elseif f.edge == "thread" then
+                -- Down its own thread, head first.
+                f.y += f.speed * 1.6 * dt
+                if f.y >= g then f.edge, f.y, f.turn = nil, g, 0 end
             elseif f.edge == "ceiling" then
                 f.x += f.speed * dt
-                if f.x >= G.W then f.edge, f.x, f.y, f.turn = "wall", G.W, 0, 270 end
+                if f.drop_at and f.x >= f.drop_at then f.edge, f.drop_at = "thread", nil end
+                if f.edge == "ceiling" and f.x >= G.W then f.edge, f.x, f.y, f.turn = "wall", G.W, 0, 270 end
             elseif f.edge == "wall" then
                 f.y += f.speed * dt
                 if f.y >= g then f.edge, f.y, f.turn = nil, g, 0 end
@@ -828,8 +913,16 @@ return function(G)
                             f.blink_in = 1.8 + math.random() * 2.2
                             local to = math.max(target.x + f.reach - 10, f.x - 150 - math.random() * 170)
                             smoke(f.x, g - 64, 7, 2, 60)
-                            f.x = to
-                            smoke(f.x, g - 64, 7, 2, 60)
+                            ring(f.x, g - 64, 130, -16, 0.7, 0.45)
+                            if math.random() < 0.4 and not f.lord then
+                                -- Somewhere up on the screen for a moment, looking down, and then where it was going.
+                                f.edge, f.sky, f.back = "sky", 0, to
+                                f.x, f.y = 260 + math.random() * (G.W - 520), 190 + math.random() * (g - 520)
+                            else
+                                f.x = to
+                            end
+                            smoke(f.x, f.y - 64, 7, 2, 60)
+                            ring(f.x, f.y - 64, 130, -16, 0.7, 0.45)
                             say({ wave = "sine", freq = 900, to = 200, ms = 160, volume = 0.05, pan = pan(f.x) }, 0.2)
                         end
                     end
@@ -844,6 +937,12 @@ return function(G)
                     or (f.fuse and many + math.min(many - 1, math.floor(f.fuse * many)) or (f.strike and many + math.min(many - 1, math.floor(f.strike * many)) or 0))
             end
             f.cell = (f.k.boss and f.k.boss * 8 or f.k.row * 16) + frame
+            -- A lord's steps are felt: a tremor and a ripple at each foot that comes down.
+            if f.lord and walking and frame ~= f.footfall and (frame == 0 or frame == 2) then
+                quake(2.5)
+                ring(f.x, g - 6, 160, 6, 0.1, 0.6)
+            end
+            f.footfall = walking and frame or nil
         end
         fact.king = king ~= nil
         if king then
@@ -904,6 +1003,8 @@ return function(G)
                         for _, u in units do
                             if math.abs(u.x - s.x) < s.splash then harm(u, s.dmg, s.ail) end
                         end
+                    elseif s.target.air then
+                        if s.target.hp > 0 then hurt(s.target, s.dmg, 0, nil, s.by) end
                     else
                         for _, f in horde do
                             if f.hp > 0 and (f.x - s.x) ^ 2 + (f.y - 40 - s.y) ^ 2 < s.splash ^ 2 then hurt(f, s.dmg, 70, s.slows, s.by) end
@@ -974,6 +1075,12 @@ return function(G)
                                 if math.random() < d[2] * more and leave(d[1], f.x, f.y - (f.k.big and 60 or 30), f.k.big and 420 or nil) then G.dropped(f.beast, d[1]) end
                             end
                         end
+                    end
+                    if f.lord then
+                        ring(f.x, f.y - 100, 560, 34, 0.9, 1.2)
+                        quake(20)
+                        fact["at.x"], fact["at.y"] = f.x, f.y - 60
+                        emit("debris")
                     end
                     if f.k.trophy then
                         leave(f.k.trophy, f.x, f.y - 80, 480)
@@ -1050,6 +1157,30 @@ return function(G)
             if q.age >= 1 then table.remove(puffs, i) end
         end
         G.smite_in = math.max(0, G.smite_in - dt)
+
+        -- The rings run out, the screen settles, the bolt goes.
+        for i = #G.waves, 1, -1 do
+            local w = G.waves[i]
+            w.age += dt * w.rate
+            if w.age >= 1 then table.remove(G.waves, i) end
+        end
+        G.shake *= math.exp(-7 * dt)
+        if G.shake < 0.3 then G.shake = 0 end
+        G.bolt_t = math.max(0, G.bolt_t - dt)
+        G.flight(dt)
+        -- A lord's shadow, far bigger than it, going by behind the field before it comes: each step a tremor.
+        local o = G.omen
+        if o then
+            o.t += dt
+            local step = math.floor(o.t / 1.15)
+            if step > (o.step or -1) and o.t < 6.6 then
+                o.step = step
+                quake(5)
+                ring(G.W + 300 - (G.W + 700) * o.t / 7, g, 280, 9, 0.15, 0.9)
+                say({ wave = "sine", freq = 70, to = 38, ms = 380, volume = 0.16, release = 300 }, 0.5)
+            end
+            if o.t >= 7 then G.omen = nil end
+        end
     end
 
     -- ── and all of it, to the scene ──
@@ -1068,7 +1199,7 @@ return function(G)
         for k, f in horde do
             if k > 96 then break end
             seen[k] = { x = f.x, y = f.y, lift = f.k.big and 0 or 99 - f.k.foot, turn = f.turn + (f.dying and math.min(1, f.dying * 1.6) * 88 or 0), cell = f.cell or 0, hurt = f.hurt, lit = f.lit,
-                        sheet = f.k.sheet, size = f.size, wash = f.wash, dazed = f.stun > 0 }
+                        sheet = f.k.sheet, size = f.size, wash = f.wash, dazed = f.stun > 0, thread = f.edge == "thread" }
         end
         model.horde = seen
         local flying = {}
@@ -1093,5 +1224,19 @@ return function(G)
         end
         model.marks = told
         fact.xp, fact.ready = math.clamp(G.xp / G.need(), 0, 1), 1 - G.smite_in / SMITE_EVERY
+        local rings = {}
+        for k, w in G.waves do rings[k] = { x = w.x, y = w.y, size = w.size, push = w.push, glow = w.glow, age = w.age } end
+        model.waves = rings
+        G.show_sky()
+        fact["shake.x"], fact["shake.y"] = G.shake * (math.random() * 2 - 1), G.shake * (math.random() * 2 - 1)
+        model.bolt = G.bolt_t > 0 and G.bolt or {}
+        fact["bolt.lit"] = G.bolt_t / 0.32
+        local o = G.omen
+        fact["omen.on"] = o ~= nil
+        if o then
+            fact["omen.x"] = G.W + 300 - (G.W + 700) * o.t / 7
+            fact["omen.cell"] = o.boss * 8 + math.floor(o.t / 0.29) % 4
+            fact["omen.o"] = math.min(1, o.t / 0.8, (7 - o.t) / 0.8)
+        end
     end
 end

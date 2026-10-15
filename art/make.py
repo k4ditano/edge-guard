@@ -539,6 +539,140 @@ def ender_giant():
     parts.update(body=body, head=head)
     return parts
 
+# ── what flies: over the whole screen, not along the ground ──
+def phantom():
+    hide, light = "#3d4a7a", "#5b6aa8"
+    root = joint("root", (0, 0, 0))
+    body = joint("body", (0, 0, 0), root)
+    box((9, 5, 3), (0, 0, 0), hide, body, paint=both(speckle("#2f3a63", 0.25, 401), speckle(light, 0.12, 402)))
+    head = joint("head", (4.5, 0, 0), body)
+    eyes = rows(".......", "GG...GG", ".......", colours=dict(G="#8cff2a"))
+    box((5, 7, 3), (7, 0, 0.4), hide, head, paint=both(speckle("#2f3a63", 0.2, 403), on("front", eyes), on("top", {(1, 3): "#8cff2a", (5, 3): "#8cff2a"})))
+    parts = dict(root=root, body=body, head=head)
+    for side in (-1, 1):
+        inner = joint("wing%d" % side, (0, side * 2.5, 1), body)
+        membrane = lambda seed: both(speckle("#7d8cc8", 0.18, seed), band((0,), "#2a3358", faces=("front", "back")))
+        box((6, 8, 0.8), (-0.5, side * 6.5, 1), light, inner, paint=membrane(404 + side))
+        outer = joint("tip%d" % side, (0, side * 10.5, 1), inner)
+        box((4, 8, 0.6), (-1.5, side * 14.5, 1), light, outer, paint=membrane(406 + side))
+        parts["wing%d" % side], parts["tip%d" % side] = inner, outer
+    tail = joint("tail", (-4.5, 0, 0), body)
+    box((6, 3, 2), (-7.5, 0, 0), hide, tail, paint=speckle("#2f3a63", 0.25, 408))
+    end = joint("tail2", (-10.5, 0, 0), tail)
+    box((6, 1.6, 1), (-13.5, 0, 0), light, end, paint=speckle("#7d8cc8", 0.2, 409))
+    parts.update(tail=tail, tail2=end)
+    return parts
+
+GHAST_SHUT = ["................", "................", "................", "................", "..KKK......KKK..", "................",
+              "................", "................", "................", "................", ".....KKKKKK.....", "................",
+              "................", "................", "................", "................"]
+GHAST_OPEN = ["................", "................", "................", "..KKK......KKK..", "..KKK......KKK..", "..KKK......KKK..",
+              "..R.R......R.R..", "...R........R...", "................", "....KKKKKKKK....", "....KKKKKKKK....", "....KKKKKKKK....",
+              ".....KKKKKK.....", "................", "................", "................"]
+
+def ghast():
+    white = "#eeeeee"
+    skin = lambda seed: both(speckle("#d4d4d4", 0.3, seed), speckle("#ffffff", 0.15, seed + 1))
+    root = joint("root", (0, 0, 0))
+    body = joint("body", (0, 0, 0), root)
+    box((16, 16, 16), (0, 0, 8), white, body, paint=both(skin(411), on("front", rows(*GHAST_SHUT, colours=dict(K="#3a3a3a")))))
+    # Its face when it shoots: a sheet just in front of the shut one, shown only then.
+    angry = joint("angry", (8.06, 0, 8), body)
+    box((0.12, 16, 16), (8.06, 0, 8), white, angry, paint=both(skin(411), on("front", rows(*GHAST_OPEN, colours=dict(K="#1a1a1a", R="#c81e1e")))), rough=0.0)
+    parts = dict(root=root, body=body, angry=angry)
+    rnd = random.Random(412)
+    for k, (x, y) in enumerate((x, y) for x in (-5, 0, 5) for y in (-5, 0, 5)):
+        long = 9 + rnd.random() * 6
+        t = joint("leg%d" % k, (x, y, 0), body)
+        box((2, 2, long), (x, y, -long / 2), white, t, paint=skin(413 + k))
+        t["phase"] = rnd.random() * math.tau
+        parts["leg%d" % k] = t
+    return parts
+
+def dragon():
+    black, scale_, purple = "#1b1b21", "#2c2c36", "#cc66ff"
+    hide = lambda seed: both(speckle(scale_, 0.3, seed), speckle("#111114", 0.2, seed + 1))
+    root = joint("root", (0, 0, 0))
+    body = joint("body", (0, 0, 0), root)
+    box((24, 12, 10), (0, 0, 0), black, body, paint=hide(421))
+    for k in range(5):
+        box((2, 2, 3), (8 - k * 4.5, 0, 6.5), "#55555f", body, paint=speckle("#7a7a85", 0.3, 422 + k), rough=0.05)
+    parts = dict(root=root, body=body)
+    # The neck, out in front, and the head at its end.
+    prev, x = body, 12
+    for k in range(4):
+        n = joint("neck%d" % k, (x, 0, 2), prev)
+        box((5, 5, 5), (x + 2.5, 0, 2), black, n, paint=hide(430 + k))
+        box((1.6, 1.6, 2), (x + 2.5, 0, 5.4), "#55555f", n, rough=0.05)
+        parts["neck%d" % k], prev, x = n, n, x + 5
+    head = joint("head", (x, 0, 2), prev)
+    eye = {(1, 4): purple, (2, 4): purple, (3, 4): "#f0c8ff", (1, 3): "#7a2fb0", (2, 3): purple}
+    box((12, 9, 7), (x + 6, 0, 3), black, head, paint=both(hide(440), on("right", {(w, h): c for (w, h), c in eye.items()}), on("left", {(11 - w, h): c for (w, h), c in eye.items()}),
+                                                           on("front", {(2, 5): "#0a0a0a", (6, 5): "#0a0a0a"})))
+    jaw = joint("jaw", (x + 1, 0, -0.5), head)
+    box((11, 8, 2), (x + 6.5, 0, -1.5), black, jaw, paint=hide(441))
+    for side in (-1, 1):
+        box((1.6, 1.6, 4), (x + 1.5, side * 2.6, 8.2), "#55555f", head, rough=0.05)
+    parts.update(head=head, jaw=jaw)
+    # The tail, long, behind.
+    prev, x = body, -12
+    for k in range(9):
+        t = joint("tail%d" % k, (x, 0, 0), prev)
+        box((5, 5 - k * 0.25, 5 - k * 0.25), (x - 2.5, 0, 0), black, t, paint=hide(450 + k))
+        box((1.6, 1.4, 2.2), (x - 2.5, 0, 3.3 - k * 0.12), "#55555f", t, rough=0.05)
+        parts["tail%d" % k], prev, x = t, t, x - 5
+    # The wings: a bone along the front, the skin behind it, in two pieces that fold.
+    for side in (-1, 1):
+        w = joint("wing%d" % side, (4, side * 6, 3), body)
+        box((3, 22, 2), (4, side * 17, 3), "#3a3a44", w, paint=speckle("#55555f", 0.3, 460 + side))
+        box((18, 22, 0.6), (-6, side * 17, 3), "#2a2238", w, paint=both(speckle("#3a2e4e", 0.25, 462 + side), speckle("#1a1424", 0.15, 464 + side)), rough=0.06)
+        tip = joint("tip%d" % side, (4, side * 28, 3), w)
+        box((2.4, 24, 1.6), (4, side * 40, 3), "#3a3a44", tip, paint=speckle("#55555f", 0.3, 466 + side))
+        box((16, 24, 0.5), (-5, side * 40, 3), "#2a2238", tip, paint=both(speckle("#3a2e4e", 0.25, 468 + side), speckle("#1a1424", 0.15, 470 + side)), rough=0.06)
+        parts["wing%d" % side], parts["tip%d" % side] = w, tip
+        for front in (1, -1):
+            l = joint("leg%d%d" % (side, front), (front * 8, side * 4.5, -4), body)
+            box((3, 3, 7), (front * 8, side * 4.5, -7.5), black, l, paint=hide(472 + side + front))
+            l["keep"] = 40
+            parts["leg%d%d" % (side, front)] = l
+    return parts
+
+FLYERS = {"phantom": (phantom, 36, 256, 256), "ghast": (ghast, 40, 256, 256), "dragon": (dragon, 112, 512, 448)}
+
+def fly(kind, p, frame):
+    """Eight pictures each: a phantom and the dragon beat their wings; a ghast
+    drifts, its legs waving, and in the last four it shoots."""
+    rest(p)
+    t = frame / 8 * math.tau
+    s, r = math.sin(t), math.radians
+    if kind == "phantom":
+        for side in (-1, 1):
+            p["wing%d" % side].rotation_euler.x = r(side * 38 * s)
+            p["tip%d" % side].rotation_euler.x = r(side * 26 * math.sin(t - 0.8))
+        p["tail"].rotation_euler.y = r(6 * math.sin(t - 1.2))
+        p["tail2"].rotation_euler.y = r(10 * math.sin(t - 1.8))
+        p["root"].location.z = -1.2 * s
+    elif kind == "ghast":
+        shooting = frame >= 4
+        p["angry"].scale = (1, 1, 1) if shooting else (0, 0, 0)
+        for k in range(9):
+            l = p["leg%d" % k]
+            ph = l["phase"]
+            l.rotation_euler.y = r(14 * math.sin(t * 2 + ph))
+            l.rotation_euler.x = r(9 * math.cos(t * 2 + ph))
+        p["root"].location.z = 0.8 * math.sin(t * 2)
+    else:
+        for side in (-1, 1):
+            p["wing%d" % side].rotation_euler.x = r(side * 34 * s)
+            p["tip%d" % side].rotation_euler.x = r(side * 30 * math.sin(t - 0.9))
+        for k in range(9):
+            p["tail%d" % k].rotation_euler.z = r(5 * math.sin(t - k * 0.55))
+            p["tail%d" % k].rotation_euler.y = r(2.5 * math.sin(t - k * 0.55 + 1))
+        for k in range(4):
+            p["neck%d" % k].rotation_euler.y = r(-3 + 2 * math.sin(t + k * 0.5))
+        p["jaw"].rotation_euler.y = r(10 + 8 * max(0.0, math.sin(t)))
+        p["root"].location.z = -3 * s
+
 # ── blocks, sixteen a side ──
 def planks(light="#b8945f", dark="#7a5c34"):
     def paint(face, w, h):
@@ -962,6 +1096,27 @@ for kind, (build, team) in KINDS.items():
     strikes = 4 if kind in LORDS else 8
     for frame in range(8 + strikes):
         pose(kind, parts, frame, strikes)
+        r_.filepath = "%s/%s/%02d.png" % (OUT, kind, frame)
+        bpy.ops.render.render(write_still=True)
+    clear()
+    print("made", kind)
+
+def view(scale, aim_z, yaw=-34, pitch=26):
+    """What flies, from the side it comes from and above it: its back and its wings are seen."""
+    yaw, pitch, far = math.radians(yaw), math.radians(pitch), 300
+    cam.location = (math.sin(yaw) * far * math.cos(pitch), -math.cos(yaw) * far * math.cos(pitch), aim_z + math.sin(pitch) * far)
+    cam.rotation_euler = (Vector((0, 0, aim_z)) - Vector(cam.location)).to_track_quat("-Z", "Y").to_euler()
+    cam_data.ortho_scale = scale
+
+for kind, (build, scale, wide, tall) in FLYERS.items():
+    if ONLY and kind not in ONLY:
+        continue
+    parts = build()
+    parts["root"]["turn"] = math.pi                 # towards the camp, as the rest
+    r_.resolution_x, r_.resolution_y = wide, tall
+    view(scale, {"ghast": 4, "phantom": -1}.get(kind, 0), pitch=12 if kind == "ghast" else 26)
+    for frame in range(8):
+        fly(kind, parts, frame)
         r_.filepath = "%s/%s/%02d.png" % (OUT, kind, frame)
         bpy.ops.render.render(write_still=True)
     clear()

@@ -1,6 +1,7 @@
 """The frames, packed into the sheets the game draws from. pleamar keeps every
-picture of a scene in one square of 2048 a side, in shelves as tall as what
-is on them, so the sheets are cut to share it: the party and the horde in
+picture of a scene in one atlas 2048 wide (taller, from pleamar 0.4.10, when
+what is seen needs it), in shelves as tall as what is on them, so the sheets
+are cut to share it: the party and the horde in
 cells of 104, sixteen to a row and six rows each (two shelves, with room at
 their side for the blocks and the things); the lords, eight pictures each
 —four of walking, four of striking— in cells of 126 by 156, sixteen to a row,
@@ -66,6 +67,21 @@ for r, kind in enumerate(LORDS):
         at = r * 8 + k
         sheet.paste(f.crop((side, 0, side + w, h)), ((at % 16) * w, (at // 16) * h + dy))
 sheet.save(f"{OUT}/boss.png")
+
+# What flies: a phantom and a ghast in cells of 128, a row of eight each; the
+# dragon on a sheet of its own, four to a row in cells of 256 by 224. Rendered at twice that.
+sheet = Image.new("RGBA", (1024, 256))
+for k, kind in enumerate(["phantom", "ghast"]):
+    for f in range(8):
+        im = Image.open(f"{R}/{kind}/{f:02d}.png").convert("RGBA").resize((128, 128), Image.LANCZOS)
+        sheet.paste(im, (f * 128, k * 128))
+sheet.save(f"{OUT}/flyers.png")
+sheet = Image.new("RGBA", (1024, 448))
+for f in range(8):
+    im = Image.open(f"{R}/dragon/{f:02d}.png").convert("RGBA").resize((256, 224), Image.LANCZOS)
+    sheet.paste(im, ((f % 4) * 256, (f // 4) * 224))
+sheet.save(f"{OUT}/dragon.png")
+print("flyers      phantom and ghast 128, dragon 256x224")
 
 blocks = ["table", "tnt", "tnt_lit", "chest_wood", "chest_wood_open", "chest_iron", "chest_iron_open", "chest_gold", "chest_gold_open", "chest_ender", "chest_ender_open",
           "furnace", "furnace_lit", "enchant", "mine", "farm_0", "farm_1", "farm_2", "farm_3"]

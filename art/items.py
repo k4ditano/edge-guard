@@ -335,6 +335,10 @@ ICONS = [
              "....oyYYyydo....", ".....oyyydo.....", "......oydo......", "......oydo......", "....ooyyydoo....", "...oyYYYyyydo...", "...oooooooooo...", "................"], dict(o="#5a3a08", y="#f2c832", Y="#ffe97a", d="#c28a12", w="#ffffff")),
     ("bolt", ["................", ".........ooooo..", "........owwlbo..", ".......owwlbo...", "......owwlbo....", ".....owwlbo.....", "....owwwlooo....", "...owwwwwlbo....",
               "....oooowlbo....", "......owlbo.....", ".....owlbo......", "....owlbo.......", "...owbo.........", "...obo..........", "...oo...........", "................"], dict(o="#1a3a5a", w="#ffffff", l="#cfe6ff", b="#7ab8f0")),
+    # ── the trader's ──
+    ("emerald", ["................", "......oooo......", ".....oglLgo.....", "....oglLLmgo....", "...ogllLmmmgo...", "..oglwlLmmmdgo..", "..oglllLmmmdgo..", "..ogllLLmmddgo..",
+                 "..ogllLmmmddgo..", "..ogllLmmmddgo..", "...oglLmmddgo...", "....oglmmdgo....", ".....ogmdgo.....", "......oooo......", "................", "................"], dict(o="#0a3a1a", g="#17803a", l="#4fe08a", L="#9affc0", m="#2fbf62", d="#1a9a48", w="#ffffff")),
+    ("xp_bottle",) + flask("#3a7a10", "#9be84a", "#e6ff7a"),
 ]
 NAMES = [i[0] for i in ICONS]
 

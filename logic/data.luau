@@ -13,13 +13,13 @@ return function(G)
                    netherite_chest = 53, wood_pick = 54, iron_pick = 55, diamond_pick = 56,
                    crown = 57, scarab = 58, slime_core = 59, frost_string = 60, magma_heart = 61, giant_eye = 62,
                    totem = 63, bell = 64, golem_core = 65, star = 66, lock = 67, skull = 68, map = 69,
-                   tab_craft = 70, tab_furnace = 71, tab_enchant = 72, cup = 73, bolt = 74 }
+                   tab_craft = 70, tab_furnace = 71, tab_enchant = 72, cup = 73, bolt = 74, emerald = 75, xp_bottle = 76 }
     local NAMES = { stick = "Stick", iron = "Iron Ingot", diamond = "Diamond", string = "String", bone = "Bone", gunpowder = "Gunpowder", flesh = "Rotten Flesh",
                     slimeball = "Slimeball", pearl = "Ender Pearl", wood_sword = "Wooden Sword", bow = "Bow", potion = "Splash Potion",
                     raw_iron = "Raw Iron", raw_gold = "Raw Gold", gold = "Gold Ingot", coal = "Coal", lapis = "Lapis Lazuli", redstone = "Redstone Dust",
                     ice = "Frost Shard", blaze_rod = "Ember Rod", scrap = "Netherite Scrap", wheat = "Wheat", iron_block = "Block of Iron",
                     crown = "King's Crown", scarab = "Desert Scarab", slime_core = "Great Slime's Core", frost_string = "Frozen Bowstring",
-                    magma_heart = "Magma Heart", giant_eye = "Eye of the Giant" }
+                    magma_heart = "Magma Heart", giant_eye = "Eye of the Giant", emerald = "Emerald" }
 
     -- What is made and handed over, or used. `slot`: 1 a weapon, 2 a helmet,
     -- 3 a chestplate, 4 boots, 5 a charm; `who`, the only one that can use it;
@@ -56,6 +56,7 @@ return function(G)
         diamond_pick     = { name = "Diamond Pickaxe",     use = "pick", level = 3, says = "press it on the bar: the mine digs faster still, and finds diamonds" },
         golem_core       = { name = "Heart of Iron",       use = "golem", says = "press it on the bar and an iron golem stands with the party" },
         bell             = { name = "Village Bell",        use = "cleric", says = "press it on the bar and a cleric comes to heal the party" },
+        xp_bottle        = { name = "Bottle o' Enchanting", use = "xp", pile = 16, says = "press it on the bar: a level of experience to spend" },
     }
     for id, def in GEAR do NAMES[id] = def.name end
     G.ITEM, G.NAMES, G.GEAR = ITEM, NAMES, GEAR
@@ -255,6 +256,9 @@ return function(G)
         { id = "slayer",   name = "Slayer",             says = "A thousand foes felled",             icon = "skull" },
         { id = "scholar",  name = "Scholar",            says = "Meet everything in the book",        icon = "book" },
         { id = "maxed",    name = "Masterwork",         says = "An enchantment as far as it goes",   icon = "lapis" },
+        { id = "trader",   name = "Good Deal",          says = "Trade with the villager 25 times",   icon = "emerald" },
+        { id = "return",   name = "Back at You",        says = "Send a ghast's fireball back at it", icon = "blaze_rod" },
+        { id = "dragon",   name = "Dragonfall",         says = "Fell the Ender Dragon",              icon = "pearl" },
         { id = "world",    name = "A New World",        says = "Step through with the Eye of the Giant", icon = "star" },
     }
 end
