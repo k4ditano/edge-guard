@@ -34,9 +34,15 @@ on the game's own pieces.
 
 <br>
 
-<img src="assets/dragon.png" width="49%" alt="The Ender Dragon looping over a desktop, the party at the bottom edge"> <img src="assets/ghast.png" width="49%" alt="A ghast's fireball going off over the party: the ring bends the window behind it">
+<img src="assets/dragon.webp" width="860" alt="The Ender Dragon looping over an empty desktop, the party holding its camp along the bottom edge">
 
-<sub>The dragon looping over a desktop; a ghast's fireball going off over the party, its ring bending the window behind. *En español: [LEEME.md](LEEME.md).*</sub>
+<sub>The Ender Dragon loops over the desktop while the party holds its camp along the bottom edge. *En español: [LEEME.md](LEEME.md).*</sub>
+
+<br>
+
+<img src="assets/ghast.webp" width="49%" alt="A ghast's fireball going off on the field: its ring bends the wallpaper behind it"> <img src="assets/trade.webp" width="49%" alt="The camp's table, a pane of glass over the desktop, open on the trader's page">
+
+<sub>A ghast's fireball goes off, and its ring bends the wallpaper; the camp's table, a pane of glass, open on the trader.</sub>
 
 <br>
 <br>

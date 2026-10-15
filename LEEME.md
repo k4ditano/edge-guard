@@ -34,9 +34,15 @@ tus ventanas en todas partes menos en las piezas del juego.
 
 <br>
 
-<img src="assets/dragon.png" width="49%" alt="El dragón del End dando vueltas sobre un escritorio, con el grupo en el borde de abajo"> <img src="assets/ghast.png" width="49%" alt="Una bola de fuego de un ghast estalla sobre el grupo: la onda dobla la ventana de detrás">
+<img src="assets/dragon.webp" width="860" alt="El dragón del End dando vueltas sobre un escritorio vacío, con el grupo defendiendo su campamento en el borde de abajo">
 
-<sub>El dragón dando vueltas sobre un escritorio; una bola de fuego de un ghast estalla sobre el grupo y su onda dobla la ventana de detrás. *In English: [README.md](README.md).*</sub>
+<sub>El dragón del End da vueltas por el escritorio mientras el grupo defiende su campamento en el borde de abajo. *In English: [README.md](README.md).*</sub>
+
+<br>
+
+<img src="assets/ghast.webp" width="49%" alt="Una bola de fuego de un ghast estalla en el campo: su onda dobla el fondo de pantalla"> <img src="assets/trade.webp" width="49%" alt="La mesa del campamento, un cristal sobre el escritorio, abierta en la página del aldeano">
+
+<sub>Estalla una bola de fuego de un ghast y su onda dobla el fondo; la mesa del campamento, de cristal, abierta en la del aldeano.</sub>
 
 <br>
 <br>
