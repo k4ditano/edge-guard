@@ -1,44 +1,127 @@
-# Edge guard
+<div align = center>
 
-A small idle battle that lives along the bottom edge of your monitor, over
-whatever you have open. A party holds a camp on the left; waves come from the
-right, through six lands, each with a lord at the end of it. The camp mines,
-smelts and grows wheat by itself, also while the game is put away or closed.
-Clicks go through to your windows everywhere except on the game's own pieces.
+<img src="assets/header.svg" width="750" alt="Edge guard">
 
-It is written in [pleamar](https://github.com/k4ditano/pleamar): one scene
-(`guard.plm`) and its logic (`guard.luau` and the four parts in `logic/`).
+<br>
 
-> **A fan work inspired by Minecraft.**
-> NOT AN OFFICIAL MINECRAFT PRODUCT. NOT APPROVED BY OR ASSOCIATED WITH MOJANG
-> OR MICROSOFT. See [Rights](#rights).
+[![Badge License]][License]
+![Badge Language]
+![Badge Commit]
+[![Badge Issues]][Issues]
+[![Badge Discord]][Discord]
+[![Badge X]][X]
+[![Badge Ko-fi]][Ko-fi]
 
-## What it needs
+<br>
 
-- Linux with a Wayland compositor that has layer-shell: Hyprland, Sway, niri,
-  KDE Plasma, pleamar-wm. Not GNOME.
-- **pleamar 0.4.10 or newer.** Its installer, in your home and nothing outside it:
+Edge guard is a small idle battle that lives along the bottom edge of your
+monitor, over whatever you have open, and spills over all of it: a party holds
+its camp while waves come through six lands, each with a lord at the end. It is
+written in [pleamar], and clicks go through to your windows everywhere except
+on the game's own pieces.
 
-  ```sh
-  curl -fsSL https://raw.githubusercontent.com/k4ditano/pleamar/main/install.sh | sh
-  ```
+<br>
 
-- PipeWire or PulseAudio, for its sounds.
-- A game controller, if you want one. It is not needed.
+---
 
-It has been run on one machine so far (pleamar-wm, an NVIDIA card, a 1080p
-monitor). Anywhere else it is untried.
+**[<kbd> <br> Install <br> </kbd>][Install]**
+**[<kbd> <br> Play <br> </kbd>][Play]**
+**[<kbd> <br> Rights <br> </kbd>][Rights]**
+**[<kbd> <br> pleamar <br> </kbd>][pleamar]**
+**[<kbd> <br> Discord <br> </kbd>][Discord]**
 
-## Play
+---
+
+<br>
+
+<img src="assets/dragon.png" width="49%" alt="The Ender Dragon looping over a desktop, the party at the bottom edge"> <img src="assets/ghast.png" width="49%" alt="A ghast's fireball going off over the party: the ring bends the window behind it">
+
+<sub>The dragon looping over a desktop; a ghast's fireball going off over the party, its ring bending the window behind. *En español: [LEEME.md](LEEME.md).*</sub>
+
+<br>
+<br>
+
+</div>
+
+> [!IMPORTANT]
+> **Unofficial fan game.** NOT AN OFFICIAL MINECRAFT PRODUCT. NOT APPROVED BY
+> OR ASSOCIATED WITH MOJANG OR MICROSOFT. It contains no file of Mojang's: every
+> picture is drawn by the scripts in `art/` and every sound is a tone made while
+> it runs. The creatures and names it imitates are theirs, so it is free to play
+> and to share, and **not to be sold**. See [Rights](#rights).
+
+# What it needs
+
+- **Linux with a Wayland compositor that has layer-shell**: Hyprland, Sway,
+  niri, river, KDE Plasma, [pleamar-wm](https://github.com/k4ditano/pleamar-wm)…
+  Not GNOME, which has no layer-shell; not X11.
+- **[pleamar](https://github.com/k4ditano/pleamar) 0.4.10 or newer**, the
+  language it is written in (step 1 below).
+- PipeWire or PulseAudio for its sounds, and a game controller if you want one.
+
+The rings that bend your windows read what is behind the game, so they need a
+compositor that lets the screen be captured (`wlr-screencopy`: Hyprland, Sway,
+river…). Without it the game plays the same, without the bending.
+
+It has been played on pleamar-wm with an NVIDIA card and a 1080p monitor. On
+any other compositor it should work the same, but it is untried: an
+[issue](https://github.com/k4ditano/edge-guard/issues) with what you saw helps.
+
+# Install
+
+**1. pleamar.** Its installer builds it in your home and puts `pleamar` in
+`~/.local/bin`; nothing outside your home is touched. `--alone` is pleamar by
+itself, without its window manager and desktop:
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/k4ditano/pleamar/main/install.sh | sh -s -- --alone
+```
+
+It finds what it needs to build (Rust, a C compiler…) and offers to install it
+with your package manager. On NixOS, or with Nix, use pleamar's flake instead
+(`nix profile install github:k4ditano/pleamar`, or as an input: see
+[pleamar's README](https://github.com/k4ditano/pleamar#nix-and-nixos)).
+
+**2. The game.** Anywhere you like; this puts it with the rest of your data:
+
+```sh
+git clone https://github.com/k4ditano/edge-guard ~/.local/share/edge-guard
+~/.local/share/edge-guard/play.sh
+```
+
+It shows up along the bottom edge of a monitor. Clicks go through to your
+windows everywhere except on the game's own pieces.
+
+**3. With your desktop, and a key for it** (optional). `play.sh stow` puts the
+game away into its corner and brings it back; bind it to a key. In your
+compositor's configuration:
+
+| Compositor | Start it with the desktop | A key to put it away and back |
+|---|---|---|
+| Hyprland | `exec-once = ~/.local/share/edge-guard/play.sh` | `bind = SUPER, G, exec, ~/.local/share/edge-guard/play.sh stow` |
+| Sway | `exec ~/.local/share/edge-guard/play.sh` | `bindsym $mod+g exec ~/.local/share/edge-guard/play.sh stow` |
+| niri | `spawn-at-startup "sh" "-c" "~/.local/share/edge-guard/play.sh"` | `Mod+G { spawn "sh" "-c" "~/.local/share/edge-guard/play.sh stow"; }` |
+| KDE Plasma | System Settings → Autostart → Add Login Script → `play.sh` | System Settings → Shortcuts → Add Command → `…/play.sh stow` |
+| pleamar-wm | a line `~/.local/share/edge-guard/play.sh` in `~/.config/pleamar/autostart` | `bind Super+g launch ~/.local/share/edge-guard/play.sh stow` in `~/.config/pleamar/keys.conf` |
+
+**Update** with `git -C ~/.local/share/edge-guard pull` (and `pleamar-update`
+for pleamar). **Remove** it with `./play.sh stop` and by deleting the folder;
+your game is kept in `~/.local/share/pleamar/guard/`, and the font in
+`~/.local/share/fonts/Monocraft.ttc`.
+
+# Play
 
 ```sh
 ./play.sh            # on the monitor your compositor picks
-./play.sh DP-1       # on that one
+./play.sh DP-1       # on that one (their names: `hyprctl monitors`, `wlr-randr`, `niri msg outputs`)
+./play.sh stow       # puts it away into its corner, or brings it back
 ./play.sh stop       # closes it
 ```
 
 The first time, `play.sh` copies the game's font (Monocraft) into
-`~/.local/share/fonts`.
+`~/.local/share/fonts`. If nothing shows up, run it from a terminal: it says
+why (pleamar missing or too old, the game already running), and so does
+pleamar.
 
 **The field**
 
@@ -143,30 +226,62 @@ and anything up there can be pressed to strike it.
 
 Your game is kept in `~/.local/share/pleamar/guard/guard5.json`.
 
-## The pictures
+# The pictures
 
 Every picture in `pieces/` is made by the scripts in `art/`: the characters and
 blocks are built box by box and rendered with Blender (`make.py`), packed into
-sheets that share pleamar's one square of pictures (`pack.py`), and the things
+sheets cut to share pleamar's atlas of pictures (`pack.py`), and the things
 are written out pixel by pixel (`items.py`). `art/build.sh` makes them all again; it needs Blender and
 Python's Pillow.
 
-## Rights
+# Rights
 
-- **No file of Mojang's is in here.** No texture, model, sound or font of
-  Minecraft's was copied: the pictures come from the scripts in `art/`, and the
+**Edge guard is an unofficial fan game. It is not an official Minecraft
+product, and it is not approved by, associated with or endorsed by Mojang
+Studios or Microsoft.** It is made for fun, by someone who likes the game.
+
+- **No file of Mojang's is in here.** No texture, model, sound, music or font
+  of Minecraft's was copied or extracted: the pictures are built by the scripts
+  in `art/` (boxes painted pixel by pixel and rendered with Blender), and the
   sounds are tones made while it runs.
 - **The characters, creatures and names are Mojang's all the same.** The
-  creeper, the enderman, the Nether, the End and the rest belong to Mojang
-  Studios and Microsoft, and what is drawn here imitates them on purpose. That
-  makes this a fan work: to play and to share for free, **not to sell**. No
-  licence in this repository gives anyone a right over them.
-- "Minecraft" is a trademark of Mojang Synergies AB. This project is not
-  theirs, is not endorsed by them, and does not use their name as its own.
+  creeper, the enderman, the ghast, the Ender Dragon, the Nether, the End and
+  the rest belong to Mojang Studios and Microsoft, and what is drawn here
+  imitates them on purpose. That makes this a fan work: **free to play and to
+  share, never to be sold**, with no ads and nothing to pay for in it. No
+  licence in this repository gives anyone any right over them.
+- "Minecraft" is a trademark of Mojang Synergies AB. It is used here only to
+  say what this is inspired by; it is not this project's name.
+- **If Mojang or Microsoft want anything here changed or taken down**, open an
+  [issue](https://github.com/k4ditano/edge-guard/issues) or write to the
+  maintainer on GitHub, and it will be done.
 - **The font** is [Monocraft](https://github.com/IdreesInc/Monocraft) by Idrees
-  Hassan, under the SIL Open Font License 1.1 (`fonts/OFL.txt`).
-- **The code** (`guard.plm`, `guard.luau`, `logic/`, `art/`, `play.sh`) is under the MIT
-  licence ([LICENSE](LICENSE)): take it, change it, build your own game on it.
-  That licence covers what was written here, the code and the drawing scripts.
-  It does not, and cannot, cover Mojang's characters and names: a game made
-  from this one with them in it is a fan work as this one is.
+  Hassan, under the SIL Open Font License 1.1 (`fonts/OFL.txt`). It is not
+  Mojang's font, and it is shipped under its own licence.
+- **The code** (`guard.plm`, `guard.luau`, `logic/`, `shaders/`, `art/`,
+  `play.sh`) is under the MIT licence ([LICENSE](LICENSE)): take it, change it,
+  build your own game on it. That licence covers what was written here, the
+  code and the drawing scripts. It does not, and cannot, cover Mojang's
+  characters and names: a game made from this one with them in it is a fan
+  work as this one is. The same is said in [NOTICE.md](NOTICE.md).
+
+<!---------------------------------------------------------------------------->
+
+[Install]: #install
+[Play]: #play
+[Rights]: #rights
+[pleamar]: https://github.com/k4ditano/pleamar
+[pleamar-wm]: https://github.com/k4ditano/pleamar-wm
+[License]: LICENSE
+[X]: https://x.com/k4ditano
+[Discord]: https://discord.gg/N7kbYC49b2
+[Ko-fi]: https://ko-fi.com/k4ditano
+[Issues]: https://github.com/k4ditano/edge-guard/issues
+
+[Badge License]: https://img.shields.io/badge/license-MIT%20(code)-9ed6bd?style=flat-square
+[Badge Language]: https://img.shields.io/badge/made%20with-pleamar%20%2B%20Luau-2c7684?style=flat-square
+[Badge Commit]: https://img.shields.io/github/last-commit/k4ditano/edge-guard?style=flat-square&color=9ed6bd
+[Badge Issues]: https://img.shields.io/github/issues/k4ditano/edge-guard?style=flat-square&color=2c7684
+[Badge Discord]: https://img.shields.io/badge/chat-Discord-5865f2?style=flat-square&logo=discord&logoColor=white
+[Badge X]: https://img.shields.io/badge/follow-@k4ditano-000000?style=flat-square&logo=x
+[Badge Ko-fi]: https://img.shields.io/badge/support-Ko--fi-ff5e5b?style=flat-square&logo=ko-fi&logoColor=white

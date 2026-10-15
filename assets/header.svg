@@ -1,0 +1,57 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="750" height="300" viewBox="0 0 750 300">
+  <defs>
+    <linearGradient id="sea" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#0d1a1c"/>
+      <stop offset="0.6" stop-color="#0f2528"/>
+      <stop offset="1" stop-color="#133236"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="0.5" cy="0.35" r="0.55">
+      <stop offset="0" stop-color="#9ed6bd" stop-opacity="0.22"/>
+      <stop offset="1" stop-color="#9ed6bd" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="drop" cx="0.38" cy="0.32" r="0.75">
+      <stop offset="0" stop-color="#effffa"/>
+      <stop offset="0.45" stop-color="#9ed6bd"/>
+      <stop offset="1" stop-color="#2c7684"/>
+    </radialGradient>
+    <radialGradient id="coal" cx="0.4" cy="0.3" r="0.8">
+      <stop offset="0" stop-color="#2a2e2e"/>
+      <stop offset="1" stop-color="#151616"/>
+    </radialGradient>
+  </defs>
+  <rect width="750" height="300" rx="28" fill="url(#sea)"/>
+  <rect width="750" height="300" rx="28" fill="url(#glow)"/>
+  <path d="M0 232 C 90 212, 170 252, 260 232 S 430 212, 520 232 S 680 252, 750 230 L750 300 L0 300 Z" fill="#9ed6bd" fill-opacity="0.07"/>
+  <path d="M0 252 C 110 236, 200 268, 300 250 S 480 234, 570 252 S 700 266, 750 250 L750 300 L0 300 Z" fill="#9ed6bd" fill-opacity="0.09"/>
+  <path d="M0 272 C 120 260, 220 286, 330 270 S 520 258, 620 274 S 720 282, 750 272 L750 300 L0 300 Z" fill="#9ed6bd" fill-opacity="0.12"/>
+  <rect x="405" y="48" width="6" height="6" fill="#f5f7f5"/>
+  <rect x="393" y="54" width="6" height="6" fill="#9ed6bd"/>
+  <rect x="399" y="54" width="6" height="6" fill="#f5f7f5"/>
+  <rect x="405" y="54" width="6" height="6" fill="#cfe9de"/>
+  <rect x="387" y="60" width="6" height="6" fill="#9ed6bd"/>
+  <rect x="393" y="60" width="6" height="6" fill="#f5f7f5"/>
+  <rect x="399" y="60" width="6" height="6" fill="#cfe9de"/>
+  <rect x="381" y="66" width="6" height="6" fill="#9ed6bd"/>
+  <rect x="387" y="66" width="6" height="6" fill="#f5f7f5"/>
+  <rect x="393" y="66" width="6" height="6" fill="#cfe9de"/>
+  <rect x="375" y="72" width="6" height="6" fill="#9ed6bd"/>
+  <rect x="381" y="72" width="6" height="6" fill="#f5f7f5"/>
+  <rect x="387" y="72" width="6" height="6" fill="#cfe9de"/>
+  <rect x="351" y="78" width="6" height="6" fill="#2c7684"/>
+  <rect x="369" y="78" width="6" height="6" fill="#9ed6bd"/>
+  <rect x="375" y="78" width="6" height="6" fill="#f5f7f5"/>
+  <rect x="381" y="78" width="6" height="6" fill="#cfe9de"/>
+  <rect x="357" y="84" width="6" height="6" fill="#2c7684"/>
+  <rect x="363" y="84" width="6" height="6" fill="#9ed6bd"/>
+  <rect x="369" y="84" width="6" height="6" fill="#f5f7f5"/>
+  <rect x="375" y="84" width="6" height="6" fill="#cfe9de"/>
+  <rect x="363" y="90" width="6" height="6" fill="#2c7684"/>
+  <rect x="357" y="96" width="6" height="6" fill="#5a4632"/>
+  <rect x="369" y="96" width="6" height="6" fill="#2c7684"/>
+  <rect x="351" y="102" width="6" height="6" fill="#5a4632"/>
+  <rect x="375" y="102" width="6" height="6" fill="#2c7684"/>
+  <rect x="345" y="108" width="6" height="6" fill="#5a4632"/>
+  <rect x="339" y="114" width="6" height="6" fill="#2c7684"/>
+  <text x="375" y="170" text-anchor="middle" font-family="Inter, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="64" font-weight="700" fill="#f5f7f5" letter-spacing="-1">Edge guard</text>
+  <text x="375" y="206" text-anchor="middle" font-family="Inter, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="17" fill="#9ed6bd" fill-opacity="0.9">an idle battle along the bottom edge of your desktop</text>
+</svg>
